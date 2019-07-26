@@ -1,42 +1,22 @@
 # -*- coding: utf-8 -*-
-import logging
-import sys
-
+import dataiku
 from dataiku import pandasutils as pdu
+import pandas as pd
+import numpy as np
+import os
+import sys
+import logging
 
 logger = logging.getLogger(__name__)
 
-
 class Preprocessor:
 
-    def __init__(self, df, target='dku_flag'):
+    def __init__ (self, df, target='dku_flag'):
         self.df = df
         self.target = target
         self.categorical_features = []
         self.numerical_features = []
         self.text_features = []
-
-    @staticmethod
-    def _coerce_to_unicode(self, x):
-        if sys.version_info < (3, 0):
-            if isinstance(x, str):
-                return unicode(x, 'utf-8')
-            else:
-                return unicode(x)
-        else:
-            return str(x)
-
-    @staticmethod
-    def _select_dummy_values(dfx, features, limit_dummies=100):
-        from collections import Counter
-        dummy_values = {}
-        for feature in features:
-            values = [
-                value
-                for (value, _) in Counter(dfx[feature]).most_common(limit_dummies)
-            ]
-            dummy_values[feature] = values
-        return dummy_values
 
     def _get_numerical_features(self):
         return self.df.select_dtypes(include=['number']).columns.tolist()
@@ -46,6 +26,15 @@ class Preprocessor:
 
     def _get_text_features(self):
         return []
+
+    def _coerce_to_unicode(self, x):
+        if sys.version_info < (3, 0):
+            if isinstance(x, str):
+                return unicode(x, 'utf-8')
+            else:
+                return unicode(x)
+        else:
+            return str(x)
 
     def parse_data(self):
         from dataiku.doctor.utils import datetime_to_epoch
@@ -59,7 +48,7 @@ class Preprocessor:
             else:
                 self.df[feature] = self.df[feature].astype('double')
 
-    def _split_train_test(self):
+    def _get_train_test_set(self):
         return pdu.split_train_valid(self.df, prop=0.8)
 
     def impute(self, dfx):
@@ -75,11 +64,23 @@ class Preprocessor:
 
         return dfx
 
+    def _select_dummy_values(self, dfx, features, LIMIT_DUMMIES = 100):
+        from collections import Counter
+        dummy_values = {}
+        for feature in features:
+            values = [
+                value
+                for (value, _) in Counter(dfx[feature]).most_common(LIMIT_DUMMIES)
+            ]
+            dummy_values[feature] = values
+        return dummy_values
+
     def dummy_encode(self, dfx, dummy_values_dict):
         dfx_copy = dfx.copy()
         for (feature, dummy_values) in dummy_values_dict.items():
             for dummy_value in dummy_values:
-                dummy_name = u'%s_value_%s' % (feature, self._coerce_to_unicode(dummy_value))
+                #TODO add dummy:N/A and dummy:_Others_
+                dummy_name = u'dummy:%s:%s' % (feature, self._coerce_to_unicode(dummy_value))
                 dfx_copy[dummy_name] = (dfx_copy[feature] == dummy_value).astype(float)
             del dfx_copy[feature]
             logger.info('Dummy-encoded feature %s' % feature)
@@ -92,7 +93,7 @@ class Preprocessor:
         self.numerical_features = self._get_numerical_features()
         self.text_features = self._get_text_features()
         self.parse_data()
-        raw_train, raw_test = self._split_train_test()
+        raw_train, raw_test = self._get_train_test_set()
         imputed_train = self.impute(raw_train)
         imputed_test = self.impute(raw_test)
 
