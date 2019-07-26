@@ -1,0 +1,13 @@
+{
+    "id": "model-drift",
+    "version": "0.1.0",
+    "meta": {
+        "label": "Model drift detection",
+        "description": "",
+        "author": "Dataiku (Léo Dreyfus-Schmidt & Du Phan)",
+        "icon": "icon-time",
+        "licenseInfo": "Apache Software License",
+        "url": "https://www.dataiku.com/community/plugins/info/model-drift.html",
+        "tags": ["Machine Learning"]
+    }
+}
