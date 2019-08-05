@@ -14,12 +14,16 @@ logger = logging.getLogger(__name__)
 
 class DriftAnalyzer:
 
-    def __init__(self, model_accessor):
+    def __init__(self, model_accessor=None):
         self.model_accessor = model_accessor
         self.original_test_df = model_accessor.get_original_test_df()
         self.drift_target_column = 'dku_flag'
         self.test_X = None
         self.test_Y = None
+
+    def check(self):
+        if self.model_accessor is None:
+            raise ValueError('ModelAccessor object is not specified.')
 
     def prepare_data_for_drift_model(self, new_test_df): 
         target = self.model_accessor.get_target()

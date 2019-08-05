@@ -3,9 +3,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 class ModelAccessor:
-    def __init__(self, model_handler):
+    def __init__(self, model_handler=None):
         self.model_handler = model_handler
-        
+
+    def check(self):
+        if self.model_handler is None:
+            raise ValueError('Model_handler object is not specified')
+
     def get_target(self):
         return self.model_handler.get_target_variable()
         
