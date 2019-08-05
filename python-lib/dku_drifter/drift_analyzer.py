@@ -17,7 +17,7 @@ class DriftAnalyzer:
     def __init__(self, model_accessor):
         self.model_accessor = model_accessor
         self.original_test_df = model_accessor.get_original_test_df()
-        self.new_target = 'dku_flag'
+        self.drift_target_column = 'dku_flag'
         self.test_X = None
         self.test_Y = None
 
@@ -29,15 +29,14 @@ class DriftAnalyzer:
         else:
             new_df = new_test_df.copy()
             
-        original_df[self.new_target] = 'original'
-        new_df[self.new_target] = 'new'
+        original_df[self.drift_target_column] = 'original'
+        new_df[self.drift_target_column] = 'new'
         df = pd.concat([original_df, new_df], sort=False)
-        selected_features = [self.new_target] + self.model_accessor.get_selected_features()
-        
+        selected_features = [self.drift_target_column] + self.model_accessor.get_selected_features()
         return df.loc[:, selected_features]
 
     def _get_selected_features(self):
-        selected_features = [self.new_target]
+        selected_features = [self.drift_target_column]
         for feat, feat_info in self.model_handler.get_per_feature().items():
             if feat_info.get('role') == 'INPUT':
                 selected_features.append(feat)
@@ -45,18 +44,17 @@ class DriftAnalyzer:
 
     def train_drift_model(self, test_df):        
         df = self.prepare_data_for_drift_model(test_df)
-        preprocessor = Preprocessor(df, target=self.new_target)
+        preprocessor = Preprocessor(df, target=self.drift_target_column)
         train, test = preprocessor.get_processed_train_test()
         
-        train_X = train.drop(self.new_target, axis=1)
-        train_Y = np.array(train[self.new_target])
-        self.test_X = test.drop(self.new_target, axis=1) # we will use them later when compute metrics
-        self.test_Y = np.array(test[self.new_target]) 
+        train_X = train.drop(self.drift_target_column, axis=1)
+        train_Y = np.array(train[self.drift_target_column])
+        self.test_X = test.drop(self.drift_target_column, axis=1) # we will use them later when compute metrics
+        self.test_Y = np.array(test[self.drift_target_column]) 
         
         drift_features = train_X.columns
         drift_clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
         drift_clf.fit(train_X, train_Y)
-        
         return drift_features, drift_clf
         
     def _get_drift_feature_importance(self, drift_features, drift_clf):
@@ -77,7 +75,6 @@ class DriftAnalyzer:
         probas = drift_clf.predict_proba(self.test_X)
         test_Y_ser = pd.Series(self.test_Y)
         auc_score = roc_auc_score(test_Y_ser, probas[:, 1]) # only for binary classif
-
         return auc_score
 
     def _get_prediction(self, new_test_df):
@@ -90,5 +87,4 @@ class DriftAnalyzer:
         feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf)
         drift_auc = self._get_drift_auc(drift_clf)
         prediction_metrics = self._get_prediction(new_test_df)
-
         return {'feature_importance': feature_importance_metrics, 'drift_auc': drift_auc, 'predictions': prediction_metrics}
