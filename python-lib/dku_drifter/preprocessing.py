@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-import dataiku
-from dataiku import pandasutils as pdu
 import pandas as pd
 import numpy as np
 import os
 import sys
+import random
+from collections import Counter
 import logging
 
 logger = logging.getLogger(__name__)
 
 class Preprocessor:
 
-    def __init__ (self, df, target='dku_flag'):
+    def __init__ (self, df, target):
         self.df = df
         self.target = target
         self.categorical_features = []
@@ -37,19 +37,26 @@ class Preprocessor:
             return str(x)
 
     def parse_data(self):
-        from dataiku.doctor.utils import datetime_to_epoch
+        def _datetime_to_epoch(series):
+            return (series - EPOCH) / np.timedelta64(1, 's')
+        
         for feature in self.categorical_features:
             self.df[feature] = self.df[feature].apply(self._coerce_to_unicode)
         for feature in self.text_features:
             self.df[feature] = self.df[feature].apply(self._coerce_to_unicode)
         for feature in self.numerical_features:
             if self.df[feature].dtype == np.dtype('M8[ns]'):
-                self.df[feature] = datetime_to_epoch(self.df[feature])
+                self.df[feature] = _datetime_to_epoch(self.df[feature])
             else:
                 self.df[feature] = self.df[feature].astype('double')
 
-    def _get_train_test_set(self):
-        return pdu.split_train_valid(self.df, prop=0.8)
+    def _get_train_test_set(self, prop=0.8, seed=None):
+        k = int(self.df.shape[0] * prop)
+        random.seed(seed)
+        sampler = random.sample(self.df.index.tolist(), k)
+        train = self.df.loc[sampler]
+        valid = self.df[~self.df.index.isin(sampler)]
+        return (train, valid)
 
     def impute(self, dfx):
         for feature in self.numerical_features:
@@ -65,7 +72,6 @@ class Preprocessor:
         return dfx
 
     def _select_dummy_values(self, dfx, features, LIMIT_DUMMIES = 100):
-        from collections import Counter
         dummy_values = {}
         for feature in features:
             values = [
@@ -88,7 +94,6 @@ class Preprocessor:
         return dfx_copy
 
     def get_processed_train_test(self):
-
         self.categorical_features = [x for x in self._get_categorical_features() if x != self.target]
         self.numerical_features = self._get_numerical_features()
         self.text_features = self._get_text_features()
@@ -102,3 +107,4 @@ class Preprocessor:
         final_test = self.dummy_encode(imputed_test, dummy_values_dict)
 
         return final_train, final_test
+        
