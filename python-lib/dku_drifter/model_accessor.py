@@ -42,4 +42,3 @@ class ModelAccessor:
     
     def predict(self, df):
         return self.get_predictor().predict(df)
-    

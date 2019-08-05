@@ -5,18 +5,26 @@ import os
 import sys
 import random
 from collections import Counter
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
+EPOCH = datetime(1900, 1, 1)
 
 class Preprocessor:
 
-    def __init__ (self, df, target):
+    def __init__ (self, df=None, target=None):
         self.df = df
         self.target = target
         self.categorical_features = []
         self.numerical_features = []
         self.text_features = []
+
+    def check(self):
+        if self.df is None:
+            raise ValueError('df is not specified.')
+        if self.target is None:
+            raise ValueError('target is not specified.')
 
     def _get_numerical_features(self):
         return self.df.select_dtypes(include=['number']).columns.tolist()
