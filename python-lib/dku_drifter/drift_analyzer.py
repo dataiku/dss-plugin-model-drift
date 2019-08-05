@@ -31,7 +31,10 @@ class DriftAnalyzer:
             
         original_df[self.drift_target_column] = 'original'
         new_df[self.drift_target_column] = 'new'
-        df = pd.concat([original_df, new_df], sort=False)
+        
+        #Need a balanced sample
+        max_rows = min(original_df.shape[0],new_df.shape[0])        
+        df = pd.concat([original_df.head(max_rows), new_df.head(max_rows)], sort=False)
         selected_features = [self.drift_target_column] + self.model_accessor.get_selected_features()
         return df.loc[:, selected_features]
 
