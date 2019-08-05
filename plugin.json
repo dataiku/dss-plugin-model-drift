@@ -3,9 +3,9 @@
     "version": "0.1.0",
     "meta": {
         "label": "Model drift detection",
-        "description": "",
+        "description": "Detect when the new test set distribution differs from the one at training time",
         "author": "Dataiku (Léo Dreyfus-Schmidt & Du Phan)",
-        "icon": "icon-time",
+        "icon": "icon-resize-full",
         "licenseInfo": "Apache Software License",
         "url": "https://www.dataiku.com/community/plugins/info/model-drift.html",
         "tags": ["Machine Learning"]

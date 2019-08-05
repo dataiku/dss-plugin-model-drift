@@ -37,6 +37,7 @@ class DriftAnalyzer:
         new_df[self.drift_target_column] = 'new'
         
         max_rows = min(original_df.shape[0],new_df.shape[0]) # Need a balanced sample
+        # TODO should raise a warning/error if the number of rows to sample is way too low
         df = pd.concat([original_df.head(max_rows), new_df.head(max_rows)], sort=False)
         selected_features = [self.drift_target_column] + self.model_accessor.get_selected_features()
         return df.loc[:, selected_features]
