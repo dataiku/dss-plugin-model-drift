@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pandas as pd
 import logging
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class ModelAccessor:
                 'feature': feature_name,
                 'importance': feat_importance
             })
-        return feature_importance
+        return pd.DataFrame(feature_importance).set_index('feature').sort_values(by='importance', ascending=False)
     
     def get_selected_features(self):
         selected_features = []
