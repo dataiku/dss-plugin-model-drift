@@ -64,7 +64,7 @@ class Preprocessor:
         sampler = random.sample(self.df.index.tolist(), k)
         train = self.df.loc[sampler]
         valid = self.df[~self.df.index.isin(sampler)]
-        return (train, valid)
+        return train, valid
 
     def impute(self, dfx):
         for feature in self.numerical_features:
@@ -113,6 +113,5 @@ class Preprocessor:
         dummy_values_dict = self._select_dummy_values(imputed_train, self.categorical_features)
         final_train = self.dummy_encode(imputed_train, dummy_values_dict)
         final_test = self.dummy_encode(imputed_test, dummy_values_dict)
-
         return final_train, final_test
         

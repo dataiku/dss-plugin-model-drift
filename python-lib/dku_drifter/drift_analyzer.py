@@ -36,8 +36,7 @@ class DriftAnalyzer:
         original_df[self.drift_target_column] = 'original'
         new_df[self.drift_target_column] = 'new'
         
-        #Need a balanced sample
-        max_rows = min(original_df.shape[0],new_df.shape[0])        
+        max_rows = min(original_df.shape[0],new_df.shape[0]) # Need a balanced sample
         df = pd.concat([original_df.head(max_rows), new_df.head(max_rows)], sort=False)
         selected_features = [self.drift_target_column] + self.model_accessor.get_selected_features()
         return df.loc[:, selected_features]
@@ -76,7 +75,7 @@ class DriftAnalyzer:
     def _get_feature_importance_metrics(self, drift_features, drift_clf):
         original_feature_importance = self.model_accessor.get_feature_importance()
         drift_feature_importance = self._get_drift_feature_importance(drift_features, drift_clf)
-        return (original_feature_importance, drift_feature_importance)
+        return original_feature_importance, drift_feature_importance
 
     def _get_drift_auc(self, drift_clf):
         probas = drift_clf.predict_proba(self.test_X)
@@ -87,7 +86,7 @@ class DriftAnalyzer:
     def _get_prediction(self, new_test_df):
         original_predictions = self.model_accessor.predict(self.original_test_df).values
         new_predicitons = self.model_accessor.predict(new_test_df).values
-        return (original_predictions, new_predicitons)
+        return original_predictions, new_predicitons
 
     def generate_drift_metrics(self, new_test_df, drift_features, drift_clf):
         logger.info("Computing drift metrics ...")
