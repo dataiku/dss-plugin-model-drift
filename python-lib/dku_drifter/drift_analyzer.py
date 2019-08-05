@@ -42,13 +42,6 @@ class DriftAnalyzer:
         selected_features = [self.drift_target_column] + self.model_accessor.get_selected_features()
         return df.loc[:, selected_features]
 
-    def _get_selected_features(self):
-        selected_features = [self.drift_target_column]
-        for feat, feat_info in self.model_handler.get_per_feature().items():
-            if feat_info.get('role') == 'INPUT':
-                selected_features.append(feat)
-        return selected_features
-
     def train_drift_model(self, test_df):        
         df = self.prepare_data_for_drift_model(test_df)
         preprocessor = Preprocessor(df, target=self.drift_target_column)
