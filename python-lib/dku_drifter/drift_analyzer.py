@@ -89,11 +89,11 @@ class DriftAnalyzer:
         test_Y = pd.Series(self.test_Y)
         drift_accuracy = accuracy_score(test_Y, predicted_Y) 
         return drift_accuracy
-
-    def _get_predictions(self, new_test_df):
+    
+    def _get_predictions(self, new_df):
         # Take only the proba of class 1
         original_predictions = [x[-1] for x in self.model_accessor.predict(self.original_df).values.tolist()]
-        new_predicitons = [x[-1] for x in self.model_accessor.predict(new_test_df).values.tolist()]
+        new_predicitons = [x[-1] for x in self.model_accessor.predict(new_df).values.tolist()]
         return original_predictions, new_predicitons
     
     def _get_stat_test(self, x,y, alpha=0.05):
