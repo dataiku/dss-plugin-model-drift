@@ -6,29 +6,31 @@ import numpy as np
 import logging
 from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, accuracy_score
 from doctor_handler import get_saved_model_version_id, get_model_info_handler
 from preprocessing import  Preprocessor
 from model_accessor import ModelAccessor
+from model_tools import mroc_auc_score
 logger = logging.getLogger(__name__)
 
 
 class DriftAnalyzer:
 
-    def __init__(self, model_accessor=None):
+    def __init__(self, model_accessor, drift_target_column='dku_flag'):
         self.model_accessor = model_accessor
-        self.original_test_df = model_accessor.get_original_test_df()
-        self.drift_target_column = 'dku_flag'
+        self.original_df = model_accessor.get_original_test_df()
+        self.drift_target_column = drift_target_column
         self.test_X = None
         self.test_Y = None
 
     def check(self):
-        if self.model_accessor is None:
-            raise ValueError('ModelAccessor object is not specified.')
+        #if self.model_accessor is None:
+        #    raise ValueError('ModelAccessor object is not specified.')
+        pass
 
     def prepare_data_for_drift_model(self, new_test_df): 
-        target = self.model_accessor.get_target()
-        original_df = self.original_test_df.drop(target, axis=1)
+        target = self.model_accessor.get_target_variable()
+        original_df = self.original_df.drop(target, axis=1)
         if target in new_test_df:
             new_df = new_test_df.drop(target, axis=1)
         else:
@@ -43,8 +45,8 @@ class DriftAnalyzer:
         selected_features = [self.drift_target_column] + self.model_accessor.get_selected_features()
         return df.loc[:, selected_features]
 
-    def train_drift_model(self, test_df):        
-        df = self.prepare_data_for_drift_model(test_df)
+    def train_drift_model(self, new_df):
+        df = self.prepare_data_for_drift_model(new_df)
         preprocessor = Preprocessor(df, target=self.drift_target_column)
         train, test = preprocessor.get_processed_train_test()
         
@@ -57,7 +59,7 @@ class DriftAnalyzer:
         drift_clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
         drift_clf.fit(train_X, train_Y)
         return drift_features, drift_clf
-        
+    
     def _get_drift_feature_importance(self, drift_features, drift_clf):
         feature_importance = []
         for feature_name, feat_importance in zip(drift_features, drift_clf.feature_importances_):
@@ -67,7 +69,7 @@ class DriftAnalyzer:
             })
         return pd.DataFrame(feature_importance).set_index('feature').sort_values(by='importance', ascending=False)
 
-    def _get_feature_importance_metrics(self, drift_features, drift_clf, top_n=10):
+    def _get_feature_importance_metrics(self, drift_features, drift_clf, top_n):
         original_feature_importance_df = self.model_accessor.get_feature_importance()
         drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf)
         
@@ -79,12 +81,18 @@ class DriftAnalyzer:
     def _get_drift_auc(self, drift_clf):
         probas = drift_clf.predict_proba(self.test_X)
         test_Y_ser = pd.Series(self.test_Y)
-        auc_score = roc_auc_score(test_Y_ser, probas[:, 1]) # only for binary classif
+        auc_score = mroc_auc_score(test_Y_ser, probas) 
         return auc_score
+    
+    def _get_drift_accuracy(self, drift_clf):
+        predicted_Y = drift_clf.predict(self.test_X)
+        test_Y = pd.Series(self.test_Y)
+        drift_accuracy = accuracy_score(test_Y, predicted_Y) 
+        return drift_accuracy
 
     def _get_predictions(self, new_test_df):
         # Take only the proba of class 1
-        original_predictions = [x[-1] for x in self.model_accessor.predict(self.original_test_df).values.tolist()]
+        original_predictions = [x[-1] for x in self.model_accessor.predict(self.original_df).values.tolist()]
         new_predicitons = [x[-1] for x in self.model_accessor.predict(new_test_df).values.tolist()]
         return original_predictions, new_predicitons
     
@@ -103,10 +111,11 @@ class DriftAnalyzer:
             logger.info("According to the data, the independence hypothesis is validated by all tests.")
         return pvals
     
-    def generate_drift_metrics(self, new_test_df, drift_features, drift_clf):
+    def generate_drift_metrics(self, new_df, drift_features, drift_clf):
         logger.info("Computing drift metrics ...")
-        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, top_n=10)
+        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, 10)
         drift_auc = self._get_drift_auc(drift_clf)
-        prediction_metrics = self._get_predictions(new_test_df)
+        drift_accuracy = self._get_drift_accuracy(drift_clf)
+        prediction_metrics = self._get_predictions(new_df)
         stat_metrics = self._get_stat_test(prediction_metrics[0], prediction_metrics[1])
-        return {'feature_importance': feature_importance_metrics, 'drift_auc': drift_auc, 'predictions': prediction_metrics, 'stat_metrics':stat_metrics}
+        return {'feature_importance': feature_importance_metrics, 'drift_auc': drift_auc, 'drift_accuracy': drift_accuracy,'predictions': prediction_metrics, 'stat_metrics':stat_metrics}

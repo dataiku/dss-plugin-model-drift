@@ -58,7 +58,7 @@ class Preprocessor:
             else:
                 self.df[feature] = self.df[feature].astype('double')
 
-    def _get_train_test_set(self, prop=0.8, seed=None):
+    def _get_train_test_set(self, prop=0.8, seed=1234):
         k = int(self.df.shape[0] * prop)
         random.seed(seed)
         sampler = random.sample(self.df.index.tolist(), k)

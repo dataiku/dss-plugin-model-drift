@@ -11,7 +11,7 @@ class ModelAccessor:
         if self.model_handler is None:
             raise ValueError('Model_handler object is not specified')
 
-    def get_target(self):
+    def get_target_variable(self):
         return self.model_handler.get_target_variable()
         
     def get_original_test_df(self):
