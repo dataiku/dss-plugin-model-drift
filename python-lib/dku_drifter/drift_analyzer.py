@@ -73,10 +73,15 @@ class DriftAnalyzer:
         original_feature_importance_df = self.model_accessor.get_feature_importance()
         drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf)
         
-        topn_drift_feature = drift_feature_importance_df[:top_n]
-        topn_original_feature = original_feature_importance_df.loc[topn_drift_feature.index.tolist()]
+        topn_drift_feature = drift_feature_importance_df[:top_n].to_dict()['importance']
+        topn_original_feature = original_feature_importance_df.loc[topn_drift_feature.keys()].to_dict()['importance']
         
-        return {'original_model': topn_original_feature.to_dict()['importance'], 'drift_model': topn_drift_feature.to_dict()['importance']}
+        feature_importance_list = []
+        for feature in topn_drift_feature.keys():
+            feature_importance_info = {'original_model': topn_original_feature.get(feature), 'drift_model':topn_drift_feature.get(feature), 'feature': feature}
+            feature_importance_list.append(feature_importance_info)
+        
+        return feature_importance_list #{'original_model': topn_original_feature.to_dict()['importance'], 'drift_model': topn_drift_feature.to_dict()['importance']}
 
     def _get_drift_auc(self, drift_clf):
         probas = drift_clf.predict_proba(self.test_X)
@@ -113,7 +118,7 @@ class DriftAnalyzer:
     
     def generate_drift_metrics(self, new_df, drift_features, drift_clf):
         logger.info("Computing drift metrics ...")
-        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, 10)
+        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, 50)
         drift_auc = self._get_drift_auc(drift_clf)
         drift_accuracy = self._get_drift_accuracy(drift_clf)
         prediction_metrics = self._get_predictions(new_df)

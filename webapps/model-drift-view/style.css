@@ -1,0 +1,12 @@
+#error_message {
+    color : red
+}
+
+.tooltip {
+            position: absolute;
+            font-size: 15px;
+            width:  auto;
+            height: auto;
+            pointer-events: none;
+            background-color: white;
+        }

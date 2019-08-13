@@ -63,21 +63,23 @@ class Preprocessor:
         random.seed(seed)
         sampler = random.sample(self.df.index.tolist(), k)
         train = self.df.loc[sampler]
-        valid = self.df[~self.df.index.isin(sampler)]
-        return train, valid
+        test = self.df[~self.df.index.isin(sampler)]
+        return train, test
 
-    def impute(self, dfx):
+    def impute(self, df_train, df_test):
         for feature in self.numerical_features:
-            v = dfx[feature].mean()
-            dfx[feature] = dfx[feature].fillna(v)
+            v = df_train[feature].mean()
+            df_train[feature] = df_train[feature].fillna(v)
+            df_test[feature] = df_test[feature].fillna(v)
             logger.info('Imputed missing values in feature %s with value %s' % (feature, self._coerce_to_unicode(v)))
 
         for feature in self.categorical_features:
             v = 'NULL_CATEGORY'
-            dfx[feature] = dfx[feature].fillna(v)
+            df_train[feature] = df_train[feature].fillna(v)
+            df_test[feature] = df_test[feature].fillna(v)
             logger.info('Imputed missing values in feature %s with value %s' % (feature, self._coerce_to_unicode(v)))
 
-        return dfx
+        return df_train, df_test
 
     def _select_dummy_values(self, dfx, features, LIMIT_DUMMIES = 100):
         dummy_values = {}
@@ -107,9 +109,7 @@ class Preprocessor:
         self.text_features = self._get_text_features()
         self.parse_data()
         raw_train, raw_test = self._get_train_test_set()
-        imputed_train = self.impute(raw_train)
-        imputed_test = self.impute(raw_test)
-
+        imputed_train, imputed_test = self.impute(raw_train, raw_test)
         dummy_values_dict = self._select_dummy_values(imputed_train, self.categorical_features)
         final_train = self.dummy_encode(imputed_train, dummy_values_dict)
         final_test = self.dummy_encode(imputed_test, dummy_values_dict)
