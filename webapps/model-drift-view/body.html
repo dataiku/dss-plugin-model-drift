@@ -1,0 +1,57 @@
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"></link>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.css" rel="stylesheet" type="text/css" />
+
+</head>
+
+<div class="container">
+        <div class="row justify-content-start">
+            <div class="col-md-auto">
+                <input type="text" id="test_set" placeholder="Enter dataset name">
+            </div>
+            <div class="col-md-auto">
+                <button class="btn btn-primary" id='run_analyse' type="submit">Run</button>
+            </div>        
+        </div>
+        
+        <div class="row">
+            <label>Model Information</label>
+        </div>
+    
+        <div class="row">
+            <div class="col-md-auto" id='drift-score'>
+                <div class='row' id='auc'>AUC: </div>
+                <div class='row' id='accuracy'>Accuracy: </div>
+            </div>
+            
+            <div class="col-md-auto">
+                Histogram/QQ plot
+            </div>
+            
+            <div class="col-md-auto">
+                <div class='row' id='anderson-test'>Anderseon test</div>
+                <div class='row' id='ks-test'>KS test</div>
+                <div class='row' id='t-test'>t-test</div>
+            </div>
+            
+        </div>
+        
+        <div class="row">
+            <label>Feature drift overview</label>
+        </div>
+    
+        <div class="row">
+            <label>Feature importance scatter plot</label>
+        </div>
+        <div class="row" id="feat-imp-plot">
+            <div class='col-md-auto' id='original-feat-imp'>Original feature importance</div>
+            <div class='col-md-auto' id='drift-feat-imp'>Drift feature importance</div>
+        </div>
+    </div>
+        
+
+</div>

@@ -1,0 +1,20 @@
+{
+    "meta": {
+        "label": "Model drift analyzer",
+        "description": "Detect when the new test set distribution differs from the one at training time",
+        "icon": "icon-resize-full"
+    },
+    "baseType": "STANDARD",
+    "hasBackend": "true",
+    "standardWebAppLibraries" : ["jquery", "dataiku", "bootstrap", "font_awesome"],
+    "virtualWebAppAffinity" : "PREFER_VIRTUAL",
+    "roles":[
+        {
+            "type": "SAVED_MODEL",
+            "targetParamsKey" : "idOfTheModel",
+            "pathParamsKey" : "idOfTheVersion"
+        }
+    ],
+    "params":[]
+
+}
