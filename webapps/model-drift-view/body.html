@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="/static/public/styles/1.0.0/dku-styles.css" />
 <script src="/plugins/model-drift/resource/dku-helpers.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"></link>
@@ -10,49 +11,67 @@
 
 <div class="container">
     <div id='error_message'></div>
-        <div class="row justify-content-start">
-            <div class="col-md-auto">
-                <input type="text" id="test_set" placeholder="Enter dataset name">
-            </div>
-            <div class="col-md-auto">
-                <button class="btn btn-primary btn-lg" id='run_analyse' data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> Processing" type="button" >Run</button>
-            </div>        
+    <div class="row">
+        <div class="col-md-auto">
+             Please choose the new test
         </div>
-        
-        <div class="row">
-            <label>Model Information</label>
+        <div class="col-md-auto">
+            <select id="dataset-list"></select>
         </div>
+        <div class="col-md-auto">
+            <button class="btn btn-primary btn-lg" id='run_analyse' data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> Processing" type="button" >Run</button>
+        </div>       
+    </div>
+    <br>
     
-        <div class="row">
-            <div class="col-md-auto" id='drift-score'>
-                <div class='row' id='auc'>AUC: </div>
-                <div class='row' id='accuracy'>Accuracy: </div>
+    <div id='info-panel' style="display:none;">
+        <div class="panel panel-success" style="margin-left: 15px; margin-right: 15px">
+            <div class="panel-heading">
+                 <h3 class="panel-title">Drift Information</h3>
             </div>
-            
-            <div class="col-md-auto">
-                Histogram/QQ plot
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col" id='drift-score'></div>
+                    <div class="col" id='drift-score-explain'>Overall measure of the discrepancy between the test dataset (used at model training) and your input dataset. This score ranges between 0 and 1, higher scores imply more drift.</div>
+                </div>
             </div>
-            
-            <div class="col-md-auto">
-                <div class='row' id='anderson-test'>Anderseon test</div>
-                <div class='row' id='ks-test'>KS test</div>
-                <div class='row' id='t-test'>t-test</div>
+        </div>
+
+        <div class="panel panel-info" style="margin-left: 15px; margin-right: 15px">
+            <div class="panel-heading">
+                 <h3 class="panel-title">Model Information</h3>
             </div>
-            
+            <div class="panel-body">
+                <div class="row" id='section-header'>Fugacity</div>
+                <div class="row">
+                    <div class="col" id='fugacity-score'></div>
+                    <div class="col" id='fugacity-score-explain'>Fugacity expresses the difference between expected and observedw samples. We compare the proportion of samples predicted in each class when applying the model on both the test and your input datasets.</div>
+                </div>
+                <br>
+                <div class="row" id='section-header'>Density chart</div>
+                <div class="row">
+                    <div class="col" id='kde-chart'></div>
+                    <div class="col">
+                        <div class='row' id='t-test'>Student t-test</div>
+                        <br>
+                        <div class='row' id='kde-explain'>The density chart illustrates how the test dataset predicted probability distribution differs from the selected dataset predicted probability distribution. The density functions show the probability density of predicted rows in the test dataset (as positive) vs predicted rows in the selected dataset (as positive). A highly drifted model fully separates the density functions.<br><br> The t-test above aims at determining whether there is a significant difference between the mean of the two probability predicted distributions on the test dataset and on the selected dataset.</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <div class="row">
-            <label>Feature drift overview</label>
-        </div>
-    
-        <div class="row">
-            <label>Feature importance scatter plot</label>
-        </div>
-        <div class="row" id="feat-imp-plot">
-            <div class='col-md-auto' id='original-feat-imp'>Original feature importance</div>
-            <div class='col-md-auto' id='drift-feat-imp'>Drift feature importance</div>
+
+        <div class="panel panel-warning" style="margin-left: 15px; margin-right: 15px">
+            <div class="panel-heading">
+                 <h3 class="panel-title">Feature Drift Overview</h3>
+            </div>
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col" id='feat-imp-plot'></div>
+                    <div class="col" id='feat-imp-plot-explain'>The scatter plot shows how important each features used in the model are in the drift detection model. On the x-axis is the drift feature importance ranking, i.e. the feature importance in the drift detection model. The closer the point is to the left, the more the feature was important in the drift model. On the y-axis is the original feature importance ranking.</div>
+                </div>
+            </div>
         </div>
     </div>
-        
 
 </div>
+        

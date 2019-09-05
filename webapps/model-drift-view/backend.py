@@ -6,6 +6,24 @@ from dku_drifter import DriftAnalyzer, ModelAccessor
 from commons import get_model_handler
 logger = logging.getLogger(__name__)
 
+
+@app.route('/get_dataset_list')
+def get_dataset_list():
+    """
+    Use the dataiku client api to retrieve the list of datasets in the current project. SO COOL!
+    Returns
+    -------
+    A dictionary containing the ``extracted_tree`` dataframe. 
+    """
+
+    project_key = dataiku.default_project_key()
+    client = dataiku.api_client()
+    project = client.get_project(project_key)
+    dataset_list = [{"name": dataset_dict['name']}
+                    for dataset_dict in project.list_datasets()]
+
+    return {'dataset_list': dataset_list}
+
 @app.route('/get_drift_metrics')
 def get_drift_metrics():
     try:

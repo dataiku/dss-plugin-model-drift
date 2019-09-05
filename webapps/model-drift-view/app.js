@@ -6,6 +6,18 @@ console.warn('model_id:', model_id)
 console.warn('model_version:', model_version)
 
 
+$.getJSON(getWebAppBackendUrl('get_dataset_list'))
+    .done( 
+        function(data){
+            console.warn(data);
+            var dataset_list = data['dataset_list'];
+            $.each(dataset_list, function(i, option) {
+                $('#dataset-list').append($('<option/>').attr("value", option.name).text(option.name));
+            });
+        }
+);
+
+
 $('#run_analyse').on('click', function(){
     var $this = $(this);
     run_analyse($this, webappMessages, draw);
@@ -14,21 +26,19 @@ $('#run_analyse').on('click', function(){
 
 function run_analyse($this, webappMessages, callback){
     $this.button('loading')
-    var test_set = $("#test_set").val();
+    var test_set = $("#dataset-list").val();    
     $.getJSON(getWebAppBackendUrl('get_drift_metrics'), {'model_id': model_id, 'test_set': test_set})
         .done(
             function(data){
                 //location.reload() // reload the html to clean the error message if exist
+                console.warn(data);
                 $this.button('reset');
-                console.warn('toto--->', data);
-                $('#auc').text('Drift model AUC: '+data['drift_auc']);                
-                $('#accuracy').text('Drift model accuracy: '+data['drift_accuracy']);                
-                $('#anderson-test').text('Anderson test: '+data['stat_metrics']['and_test']);
-                $('#ks-test').text('KS test: '+data['stat_metrics']['ks_test']);
-                $('#t-test').text('Student t-test: '+data['stat_metrics']['t_test']);
-                $("#original-feat-imp").text('Feature importance'+JSON.stringify(data['feature_importance']));
+                $('#drift-score').text(data['drift_accuracy']);                
+                $("#t-test").text('Student t-test: ' + JSON.stringify(data['stat_metrics']['proba_1']));
                 $('#error_message').html('');
-                callback(data['feature_importance']);
+                callback(data);
+                document.getElementById('info-panel').style.display = "block";
+
             }
         ).error(function(data){
             $this.button('reset');
@@ -36,8 +46,6 @@ function run_analyse($this, webappMessages, callback){
             }
          ); 
 };
-
-//let svg = d3.select("#feat-imp-plot");
 
 
 function getMinX(data) {
@@ -57,44 +65,159 @@ function getMaxY(data) {
 }
 
 
+
+
 function draw(data){
+    draw_fugacity(data['fugacity']);
+    draw_kde(data['predictions']);
+    console.warn('FEAT IMP:', data['feature_importance']);
+    draw_feat_imp(data['feature_importance']);
+}
+
+
+function draw_fugacity(data){
+    document.getElementById('fugacity-score').innerHTML = json2table(data, 'table');
+}
+
+function json2table(json, classes){
     
     
-      google.charts.load('current', {'packages':['gauge']});
-      google.charts.setOnLoadCallback(drawChart);
+    var cols = Object.keys(json[0]);
+  
+    var headerRow = '';
+    var bodyRows = '';
 
-      function drawChart() {
+     classes = classes || '';
 
-        var data = google.visualization.arrayToDataTable([
-          ['Label', 'Value'],
-          ['Auc', 0],
-          ['Accuracy', 0]
-        ]);
-
-        var options = {
-          width: 400, height: 120,
-          redFrom: 0.8, redTo: 1,
-          yellowFrom:0.6, yellowTo: 0.8,
-          minorTicks: 5,
-          min:0,
-          max:1,
-          animation:{easing: 'inAndOut'}
-        };
-
-        var chart = new google.visualization.Gauge(document.getElementById('auc'));
-
-       
-        chart.draw(data, options);
-        setTimeout(function() {
-          data.setValue(0, 1, 0.5);
-          data.setValue(1, 1, 0.8);
-            chart.draw(data, options);
-        }, 500);
+      function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
       }
+
+      cols.map(function(col) {
+        headerRow += '<th>' + capitalizeFirstLetter(col) + '</th>';
+      });
+
+      json.map(function(row) {
+        bodyRows += '<tr>';
+
+        cols.map(function(colName) {
+          bodyRows += '<td>' + row[colName] + '</td>';
+        })
+
+        bodyRows += '</tr>';
+      });
+
+      return '<table class="' +
+             classes +
+             '"><thead><tr>' +
+             headerRow +
+             '</tr></thead><tbody>' +
+             bodyRows +
+             '</tbody></table>';
+    }
+
+
+function draw_kde(data){
+    console.warn(data['original']);
+    var margin = {top: 30, right: 30, bottom: 30, left: 50};
+    var width = 460 - margin.left - margin.right;
+    var height = 400 - margin.top - margin.bottom;
+
+    // append the svg object to the body of the page
+    var svg = d3.select("#kde-chart")
+      .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform",
+              "translate(" + margin.left + "," + margin.top + ")");
+
+
+      // add the x Axis
+      var x = d3.scaleLinear()
+          .domain([0,100])
+          .range([0, width]);
+      svg.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x));
+
+      // Compute kernel density estimation
+      var kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(100))
+      var density1 =  kde(data['original'])
+      var density2 =  kde(data['new'])
+
+      density1_array = density1.map(x=>x[1])
+      density2_array = density2.map(x=>x[1])
+
+      // add the y Axis
+      var maxY = Math.max.apply(Math, density1_array.concat(density2_array));
+      var y = d3.scaleLinear()
+                .range([height, 0])
+                .domain([0, maxY*1.1]);
+      svg.append("g")
+          .call(d3.axisLeft(y));
     
-        
-    //svg.selectAll("*").remove();
-    // set the dimensions and margins of the graph
+      // Plot the area
+      svg.append("path")
+          .attr("class", "mypath")
+          .datum(density1)
+          .attr("fill", "#2b67ff")
+          .attr("opacity", ".6")
+          .attr("stroke", "#000")
+          .attr("stroke-width", 2)
+          .attr("stroke-linejoin", "round")
+          .attr("d",  d3.line()
+            .curve(d3.curveBasis)
+              .x(function(d) { return x(d[0]); })
+              .y(function(d) { return y(d[1]); })
+          );
+
+      // Plot the area
+      svg.append("path")
+          .attr("class", "mypath")
+          .datum(density2)
+          .attr("fill", "#ff832b")
+          .attr("opacity", ".6")
+          .attr("stroke", "#000")
+          .attr("stroke-width", 2)
+          .attr("stroke-linejoin", "round")
+          .attr("d",  d3.line()
+            .curve(d3.curveBasis)
+              .x(function(d) { return x(d[0]); })
+              .y(function(d) { return y(d[1]); })
+          );
+
+
+    // Handmade legend
+    svg.append("circle").attr("cx",280).attr("cy",10).attr("r", 6).style("fill", "#2b67ff")
+    svg.append("circle").attr("cx",280).attr("cy",40).attr("r", 6).style("fill", "#ff832b")
+    svg.append("text").attr("x", 300).attr("y", 10).text("Original dataset").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", 300).attr("y", 40).text("New dataset").style("font-size", "15px").attr("alignment-baseline","middle")
+          // Add X axis label:
+    svg.append("text")
+      .attr("text-anchor", "end")
+      .attr("x", width/2 + 70)
+      .attr("y", height + 30)
+      .attr("font-size", 12)
+      .text(" Prediction probability (in %) for label 1");
+
+    // Function to compute density
+    function kernelDensityEstimator(kernel, X) {
+      return function(V) {
+        return X.map(function(x) {
+          return [x, d3.mean(V, function(v) { return kernel(x - v); })];
+        });
+      };
+    }
+    function kernelEpanechnikov(k) {
+      return function(v) {
+        return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+      };
+    }
+}
+
+
+function draw_feat_imp(data){
     var values = Object.keys(data).map(function(key){
         return data[key];
     });
@@ -139,17 +262,48 @@ function draw(data){
         .style("border", "solid")
         .style("border-width", "1px")
         .style("border-radius", "5px")
-        .style("padding", "10px")     
+        .style("padding", "10px") 
+        .style("font-size", "20px")
       
+    
+        
         var tipMouseover = function(d) {
           var html  = d["feature"];
           tooltip.html(html)
-              .style("left", (d3.event.pageX + 15) + "px")
-              .style("top", (d3.event.pageY - 28) + "px")
+              .style("left", d + "px")
+              .style("top", d  + "px")
             .transition()
               .duration(200) // ms
               .style("opacity", .9) // started as 0!
       };
+    
+        var tipMouseover2 = function(d){
+            var html  = d["feature"];
+            var matrix = this.getScreenCTM().translate(+ this.getAttribute("cx"), + this.getAttribute("cy"));
+            tooltip.html(html)
+                .style("left", d3.select(this).attr("cx")+ "px")     
+                .style("top", d3.select(this).attr("cy") + "px")
+                .transition()
+                  .duration(200) // ms
+                  .style("opacity", .9) // started as 0!
+        };
+    
+      // Add X axis label:
+      svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width/2 + margin.left + 50)
+          .attr("y", height + margin.top + 20)
+          .attr("font-size", 12)
+          .text("Drift model feature importance ranking");
+
+      // Y axis label:
+      svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-90)")
+          .attr("y", -margin.left + 20)
+          .attr("x", -margin.top - height/2 + 120)
+          .attr("font-size", 12)
+          .text("Original model feature importance ranking");
     
       // tooltip mouseout event handler
       var tipMouseout = function(d) {
@@ -165,9 +319,8 @@ function draw(data){
         .append("circle")
           .attr("cx", function (d) { return x(d['drift_model']); } )
           .attr("cy", function (d) { return y(d['original_model']); } )
-          .attr("r", 8)
+          .attr("r", 6)
           .style("fill", "#69b3a2")
-    .on("mouseover", tipMouseover )
+    .on("mouseover", tipMouseover2 )
     .on("mouseout", tipMouseout )
-
 }

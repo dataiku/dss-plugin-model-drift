@@ -1,10 +1,39 @@
 #error_message {
-    color : red
+    color : red;
+    font-size: 15px;
+}
+
+
+#section-header{
+    font-size: 20px;
+    font-weight: bold;
+    padding-left: 17px;
+}
+
+.col{
+    font-size: 15px;
+}
+.row{
+    font-size: 15px;
+}
+
+#t-test{
+    font-weight: bold;
+    font-size: 30px;
+}
+#drift-score{
+    font-size: 50px;
+    font-weight: bold;
+}
+
+ .panel-body  {
+    word-break: break-all;
+    word-wrap: break-word;
 }
 
 .tooltip {
-            position: absolute;
-            font-size: 15px;
+            position: relative;
+            font-size: 8px;
             width:  auto;
             height: auto;
             pointer-events: none;

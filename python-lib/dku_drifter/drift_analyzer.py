@@ -59,7 +59,7 @@ class DriftAnalyzer:
         drift_clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
         drift_clf.fit(train_X, train_Y)
         return drift_features, drift_clf
-    
+
     def _get_drift_feature_importance(self, drift_features, drift_clf):
         feature_importance = []
         for feature_name, feat_importance in zip(drift_features, drift_clf.feature_importances_):
@@ -67,8 +67,10 @@ class DriftAnalyzer:
                 'feature': feature_name,
                 'importance': feat_importance
             })
-        return pd.DataFrame(feature_importance).set_index('feature').sort_values(by='importance', ascending=False)
-
+            
+        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True).drop('importance', axis=1)
+        return dfx.rename_axis('importance').reset_index().set_index('feature')
+    
     def _get_feature_importance_metrics(self, drift_features, drift_clf, top_n):
         original_feature_importance_df = self.model_accessor.get_feature_importance()
         drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf)
@@ -81,7 +83,7 @@ class DriftAnalyzer:
             feature_importance_info = {'original_model': topn_original_feature.get(feature), 'drift_model':topn_drift_feature.get(feature), 'feature': feature}
             feature_importance_list.append(feature_importance_info)
         
-        return feature_importance_list #{'original_model': topn_original_feature.to_dict()['importance'], 'drift_model': topn_drift_feature.to_dict()['importance']}
+        return feature_importance_list 
 
     def _get_drift_auc(self, drift_clf):
         probas = drift_clf.predict_proba(self.test_X)
@@ -92,21 +94,66 @@ class DriftAnalyzer:
     def _get_drift_accuracy(self, drift_clf):
         predicted_Y = drift_clf.predict(self.test_X)
         test_Y = pd.Series(self.test_Y)
-        drift_accuracy = accuracy_score(test_Y, predicted_Y) 
+        drift_accuracy = round(accuracy_score(test_Y, predicted_Y),2)
         return drift_accuracy
     
-    def _get_predictions(self, new_df):
-        # Take only the proba of class 1
-        original_predictions = [x[-1] for x in self.model_accessor.predict(self.original_df).values.tolist()]
-        new_predicitons = [x[-1] for x in self.model_accessor.predict(new_df).values.tolist()]
-        return original_predictions, new_predicitons
+    def _get_predictions(self, new_df, limit=500):     
+        """
+        The result of model_accessor.predict() is a dataframe prediction|proba_0|proba_1|...
+        """
+                
+        original_prediction_df = self.model_accessor.predict(self.original_df[:limit])
+        new_prediciton_df = self.model_accessor.predict(new_df[:limit])
+        proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col] 
+
+        # move to % scale, it plays nicer with d3 ...
+        original_prediction_df.loc[:, proba_columns] = original_prediction_df.loc[:, proba_columns] * 100
+        new_prediciton_df.loc[:, proba_columns] = new_prediciton_df.loc[:, proba_columns] * 100 
+
+        return {'original': original_prediction_df, 'new': new_prediciton_df}
     
+    def _get_frugacity(self, prediction_dict):
+        
+        original_prediction_df = prediction_dict.get('original')
+        new_prediciton_df = prediction_dict.get('new')
+        
+        original_fugacity = (100*original_prediction_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
+        for key in original_fugacity.keys():
+            new_key = "Label {} (in %)".format(key)
+            original_fugacity[new_key] = original_fugacity.pop(key)
+        original_fugacity['source'] = 'Original test set'
+        
+        new_fugacity = (100*new_prediciton_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
+        for key in new_fugacity.keys():
+            new_key = "Label {} (in %)".format(key)
+            new_fugacity[new_key] = new_fugacity.pop(key)
+        new_fugacity['source'] = 'New test set'
+        
+        return [original_fugacity, new_fugacity]
+
+    
+    def _get_stat_test2(self, prediction_dict, alpha=0.05):
+        
+        original_prediction_df = prediction_dict.get('original')
+        new_prediction_df = prediction_dict.get('new')
+        proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col] 
+        
+        stat_test_dict = {}
+        
+        for column in proba_columns:
+            original_probas = original_prediction_df[column].values
+            new_probas = new_prediction_df[column].values
+            t_test = stats.ttest_ind(original_probas, new_probas, equal_var=False)[-1]
+            stat_test_dict[column] = round(t_test, 2)
+            
+        return stat_test_dict
+
     def _get_stat_test(self, x,y, alpha=0.05):
         '''return p-values for t-test, ks-test and anderson-test'''
         t_test = stats.ttest_ind(x,y, equal_var=False)[-1]
-        ks_test = stats.ks_2samp(x,y)[-1]
-        and_test = stats.anderson_ksamp([x,y])[-1]
-        pvals = {"t_test":t_test,"ks_test":ks_test,"and_test":and_test} 
+        #ks_test = stats.ks_2samp(x,y)[-1]
+        #and_test = stats.anderson_ksamp([x,y])[-1]
+        pvals = {"t_test": round(t_test,4)}#,"ks_test":ks_test,"and_test":and_test} 
         h0= True
         for test,pval in pvals.items():
             if pval < alpha:
@@ -118,9 +165,17 @@ class DriftAnalyzer:
     
     def generate_drift_metrics(self, new_df, drift_features, drift_clf):
         logger.info("Computing drift metrics ...")
-        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, 50)
+        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, top_n=5)
         drift_auc = self._get_drift_auc(drift_clf)
         drift_accuracy = self._get_drift_accuracy(drift_clf)
-        prediction_metrics = self._get_predictions(new_df)
-        stat_metrics = self._get_stat_test(prediction_metrics[0], prediction_metrics[1])
-        return {'feature_importance': feature_importance_metrics, 'drift_auc': drift_auc, 'drift_accuracy': drift_accuracy,'predictions': prediction_metrics, 'stat_metrics':stat_metrics}
+        prediction_dict = self._get_predictions(new_df, limit=500)
+        # for now we take only class 1
+        class_1_original = np.around(prediction_dict.get('original')['proba_1'].values,2).tolist()
+        class_1_new = np.around(prediction_dict.get('new')['proba_1'].values,2).tolist()
+        predictions = {'original': class_1_original, 'new': class_1_new}
+        
+        fugacity_metrics = self._get_frugacity(prediction_dict)
+        #stat_metrics = self._get_stat_test(prediction_metrics.get('original'), prediction_metrics.get('new'))
+        stat_metrics = self._get_stat_test2(prediction_dict)
+        print('doneeeeee')
+        return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy,'predictions': predictions, 'stat_metrics':stat_metrics, 'fugacity': fugacity_metrics}

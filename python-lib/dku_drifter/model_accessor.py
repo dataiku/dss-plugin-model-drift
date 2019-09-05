@@ -32,7 +32,9 @@ class ModelAccessor:
                 'feature': feature_name,
                 'importance': feat_importance
             })
-        return pd.DataFrame(feature_importance).set_index('feature').sort_values(by='importance', ascending=False)
+            
+        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True).drop('importance', axis=1)
+        return dfx.rename_axis('importance').reset_index().set_index('feature')
     
     def get_selected_features(self):
         selected_features = []
