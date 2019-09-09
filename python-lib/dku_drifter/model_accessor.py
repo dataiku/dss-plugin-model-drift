@@ -30,7 +30,7 @@ class ModelAccessor:
         for feature_name, feat_importance in zip(predictor.get_features(), clf.feature_importances_):
             feature_importance.append({
                 'feature': feature_name,
-                'importance': feat_importance
+                'importance': int(feat_importance)
             })
             
         dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True).drop('importance', axis=1)

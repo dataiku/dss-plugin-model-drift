@@ -2,8 +2,10 @@
 import sys
 import os
 import pandas as pd
+import json
 import numpy as np
 import logging
+import math
 from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
@@ -80,10 +82,12 @@ class DriftAnalyzer:
         
         feature_importance_list = []
         for feature in topn_drift_feature.keys():
-            feature_importance_info = {'original_model': topn_original_feature.get(feature), 'drift_model':topn_drift_feature.get(feature), 'feature': feature}
-            feature_importance_list.append(feature_importance_info)
+            original_feat_rank = topn_original_feature.get(feature)
+            if not np.isnan(original_feat_rank):
+                feature_importance_info = {'original_model': original_feat_rank , 'drift_model':topn_drift_feature.get(feature), 'feature': feature}
+                feature_importance_list.append(feature_importance_info)
         
-        return feature_importance_list 
+        return feature_importance_list
 
     def _get_drift_auc(self, drift_clf):
         probas = drift_clf.predict_proba(self.test_X)
@@ -107,8 +111,8 @@ class DriftAnalyzer:
         proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col] 
 
         # move to % scale, it plays nicer with d3 ...
-        original_prediction_df.loc[:, proba_columns] = original_prediction_df.loc[:, proba_columns] * 100
-        new_prediciton_df.loc[:, proba_columns] = new_prediciton_df.loc[:, proba_columns] * 100 
+        original_prediction_df.loc[:, proba_columns] = np.around(original_prediction_df.loc[:, proba_columns] * 100)
+        new_prediciton_df.loc[:, proba_columns] = np.around(new_prediciton_df.loc[:, proba_columns] * 100)
 
         return {'original': original_prediction_df, 'new': new_prediciton_df}
     
@@ -119,13 +123,13 @@ class DriftAnalyzer:
         
         original_fugacity = (100*original_prediction_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
         for key in original_fugacity.keys():
-            new_key = "Label {} (in %)".format(key)
+            new_key = "Label {} (%)".format(key)
             original_fugacity[new_key] = original_fugacity.pop(key)
         original_fugacity['source'] = 'Original test set'
         
         new_fugacity = (100*new_prediciton_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
         for key in new_fugacity.keys():
-            new_key = "Label {} (in %)".format(key)
+            new_key = "Label {} (%)".format(key)
             new_fugacity[new_key] = new_fugacity.pop(key)
         new_fugacity['source'] = 'New test set'
         
@@ -165,10 +169,10 @@ class DriftAnalyzer:
     
     def generate_drift_metrics(self, new_df, drift_features, drift_clf):
         logger.info("Computing drift metrics ...")
-        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, top_n=5)
-        drift_auc = self._get_drift_auc(drift_clf)
+        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, top_n=50)
+        drift_auc = self._get_drift_auc(drift_clf) 
         drift_accuracy = self._get_drift_accuracy(drift_clf)
-        prediction_dict = self._get_predictions(new_df, limit=500)
+        prediction_dict = self._get_predictions(new_df, limit=10000)
         # for now we take only class 1
         class_1_original = np.around(prediction_dict.get('original')['proba_1'].values,2).tolist()
         class_1_new = np.around(prediction_dict.get('new')['proba_1'].values,2).tolist()
@@ -177,5 +181,4 @@ class DriftAnalyzer:
         fugacity_metrics = self._get_frugacity(prediction_dict)
         #stat_metrics = self._get_stat_test(prediction_metrics.get('original'), prediction_metrics.get('new'))
         stat_metrics = self._get_stat_test2(prediction_dict)
-        print('doneeeeee')
         return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy,'predictions': predictions, 'stat_metrics':stat_metrics, 'fugacity': fugacity_metrics}

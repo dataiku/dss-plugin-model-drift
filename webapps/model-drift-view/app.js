@@ -5,11 +5,9 @@ let model_version = webAppConfig['idOfTheVersion'];
 console.warn('model_id:', model_id)
 console.warn('model_version:', model_version)
 
-
 $.getJSON(getWebAppBackendUrl('get_dataset_list'))
     .done( 
         function(data){
-            console.warn(data);
             var dataset_list = data['dataset_list'];
             $.each(dataset_list, function(i, option) {
                 $('#dataset-list').append($('<option/>').attr("value", option.name).text(option.name));
@@ -24,6 +22,7 @@ $('#run_analyse').on('click', function(){
     }                
 )
 
+
 function run_analyse($this, webappMessages, callback){
     $this.button('loading')
     var test_set = $("#dataset-list").val();    
@@ -31,16 +30,14 @@ function run_analyse($this, webappMessages, callback){
         .done(
             function(data){
                 //location.reload() // reload the html to clean the error message if exist
-                console.warn(data);
                 $this.button('reset');
                 $('#drift-score').text(data['drift_accuracy']);                
                 $("#t-test").text('Student t-test: ' + JSON.stringify(data['stat_metrics']['proba_1']));
                 $('#error_message').html('');
                 callback(data);
                 document.getElementById('info-panel').style.display = "block";
-
             }
-        ).error(function(data){
+        ).fail(function(data){
             $this.button('reset');
             webappMessages.displayFatalError('Internal Server Error: ' + data.responseText);
             }
@@ -70,7 +67,6 @@ function getMaxY(data) {
 function draw(data){
     draw_fugacity(data['fugacity']);
     draw_kde(data['predictions']);
-    console.warn('FEAT IMP:', data['feature_importance']);
     draw_feat_imp(data['feature_importance']);
 }
 
@@ -118,7 +114,6 @@ function json2table(json, classes){
 
 
 function draw_kde(data){
-    console.warn(data['original']);
     var margin = {top: 30, right: 30, bottom: 30, left: 50};
     var width = 460 - margin.left - margin.right;
     var height = 400 - margin.top - margin.bottom;
@@ -140,15 +135,23 @@ function draw_kde(data){
       svg.append("g")
           .attr("transform", "translate(0," + height + ")")
           .call(d3.axisBottom(x));
+    
 
       // Compute kernel density estimation
-      var kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(100))
+      var kde = kernelDensityEstimator(kernelEpanechnikov(10), x.ticks(50))
       var density1 =  kde(data['original'])
       var density2 =  kde(data['new'])
 
       density1_array = density1.map(x=>x[1])
       density2_array = density2.map(x=>x[1])
 
+      // first and last value of array must be zero otherwise the color fill will mess up
+      density1[0] = [0,0];
+      density2[0] = [0,0];
+      density1[density1.length - 1] = [100,0];
+      density2[density2.length - 1] = [100, 0];
+    
+    
       // add the y Axis
       var maxY = Math.max.apply(Math, density1_array.concat(density2_array));
       var y = d3.scaleLinear()
@@ -156,6 +159,7 @@ function draw_kde(data){
                 .domain([0, maxY*1.1]);
       svg.append("g")
           .call(d3.axisLeft(y));
+  
     
       // Plot the area
       svg.append("path")
@@ -172,6 +176,7 @@ function draw_kde(data){
               .y(function(d) { return y(d[1]); })
           );
 
+    
       // Plot the area
       svg.append("path")
           .attr("class", "mypath")
@@ -191,9 +196,9 @@ function draw_kde(data){
     // Handmade legend
     svg.append("circle").attr("cx",280).attr("cy",10).attr("r", 6).style("fill", "#2b67ff")
     svg.append("circle").attr("cx",280).attr("cy",40).attr("r", 6).style("fill", "#ff832b")
-    svg.append("text").attr("x", 300).attr("y", 10).text("Original dataset").style("font-size", "15px").attr("alignment-baseline","middle")
-    svg.append("text").attr("x", 300).attr("y", 40).text("New dataset").style("font-size", "15px").attr("alignment-baseline","middle")
-          // Add X axis label:
+    svg.append("text").attr("x", 300).attr("y", 10).text("Original test set").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", 300).attr("y", 40).text("New test set").style("font-size", "15px").attr("alignment-baseline","middle")
+    // Add X axis label:
     svg.append("text")
       .attr("text-anchor", "end")
       .attr("x", width/2 + 70)
@@ -221,7 +226,6 @@ function draw_feat_imp(data){
     var values = Object.keys(data).map(function(key){
         return data[key];
     });
-    
     var maxX = getMaxX(values);
     var maxY = getMaxY(values);    
     
