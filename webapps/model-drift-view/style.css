@@ -5,8 +5,12 @@
 
 
 #section-header{
-    font-size: 20px;
+    font-size: 25px;
     font-weight: bold;
+    padding-left: 17px;
+}
+
+#label-list{
     padding-left: 17px;
 }
 
@@ -19,7 +23,7 @@
 
 #t-test{
     font-weight: bold;
-    font-size: 30px;
+    font-size: 25px;
 }
 #drift-score{
     font-size: 50px;

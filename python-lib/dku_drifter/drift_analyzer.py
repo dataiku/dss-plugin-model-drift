@@ -84,8 +84,10 @@ class DriftAnalyzer:
         for feature in topn_drift_feature.keys():
             original_feat_rank = topn_original_feature.get(feature)
             if not np.isnan(original_feat_rank):
-                feature_importance_info = {'original_model': original_feat_rank , 'drift_model':topn_drift_feature.get(feature), 'feature': feature}
+                feature_importance_info = {'original_model': original_feat_rank+1 , 'drift_model':topn_drift_feature.get(feature)+1, 'feature': feature}
                 feature_importance_list.append(feature_importance_info)
+            else:
+                logger.warn('Feature {} does not exist in the orignal test set.'.format(feature))
         
         return feature_importance_list
 
@@ -123,15 +125,15 @@ class DriftAnalyzer:
         
         original_fugacity = (100*original_prediction_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
         for key in original_fugacity.keys():
-            new_key = "Label {} (%)".format(key)
+            new_key = "{} (%)".format(key)
             original_fugacity[new_key] = original_fugacity.pop(key)
-        original_fugacity['source'] = 'Original test set'
+        original_fugacity[' Source'] = 'Original set'
         
         new_fugacity = (100*new_prediciton_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
         for key in new_fugacity.keys():
-            new_key = "Label {} (%)".format(key)
+            new_key = "{} (%)".format(key)
             new_fugacity[new_key] = new_fugacity.pop(key)
-        new_fugacity['source'] = 'New test set'
+        new_fugacity[' Source'] = 'New set'
         
         return [original_fugacity, new_fugacity]
 
@@ -141,15 +143,15 @@ class DriftAnalyzer:
         original_prediction_df = prediction_dict.get('original')
         new_prediction_df = prediction_dict.get('new')
         proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col] 
-        
         stat_test_dict = {}
         
         for column in proba_columns:
             original_probas = original_prediction_df[column].values
             new_probas = new_prediction_df[column].values
             t_test = stats.ttest_ind(original_probas, new_probas, equal_var=False)[-1]
-            stat_test_dict[column] = round(t_test, 2)
+            stat_test_dict[column] = round(t_test, 3)
             
+        logger.warn('STAT TEST:{}'.format(stat_test_dict))
         return stat_test_dict
 
     def _get_stat_test(self, x,y, alpha=0.05):
@@ -174,11 +176,18 @@ class DriftAnalyzer:
         drift_accuracy = self._get_drift_accuracy(drift_clf)
         prediction_dict = self._get_predictions(new_df, limit=10000)
         # for now we take only class 1
-        class_1_original = np.around(prediction_dict.get('original')['proba_1'].values,2).tolist()
-        class_1_new = np.around(prediction_dict.get('new')['proba_1'].values,2).tolist()
-        predictions = {'original': class_1_original, 'new': class_1_new}
+        #class_1_original = np.around(prediction_dict.get('original')['proba_1'].values,2).tolist()
+        #class_1_new = np.around(prediction_dict.get('new')['proba_1'].values,2).tolist()
+        #predictions = {'original': class_1_original, 'new': class_1_new}
         
+        predictions_by_class = {}
+        for label in prediction_dict.get('original').columns:
+            if 'proba_' in label:
+                original_proba = np.around(prediction_dict.get('original')[label].values,2).tolist()
+                new_proba = np.around(prediction_dict.get('new')[label].values,2).tolist()
+                predictions_by_class[label] = {'original': original_proba, 'new': new_proba}
         fugacity_metrics = self._get_frugacity(prediction_dict)
         #stat_metrics = self._get_stat_test(prediction_metrics.get('original'), prediction_metrics.get('new'))
         stat_metrics = self._get_stat_test2(prediction_dict)
-        return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy,'predictions': predictions, 'stat_metrics':stat_metrics, 'fugacity': fugacity_metrics}
+        label_list = [label for label in fugacity_metrics[0].keys() if label != 'source']
+        return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy,'predictions': predictions_by_class, 'stat_metrics':stat_metrics, 'fugacity': fugacity_metrics, 'label_list': label_list}

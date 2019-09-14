@@ -13,7 +13,7 @@
     <div id='error_message'></div>
     <div class="row">
         <div class="col-md-auto">
-             Please choose the new test
+             Please choose the new test set
         </div>
         <div class="col-md-auto">
             <select id="dataset-list"></select>
@@ -47,8 +47,11 @@
                     <div class="col" id='fugacity-score'></div>
                     <div class="col" id='fugacity-score-explain'>Fugacity expresses the difference between expected and observedw samples. We compare the proportion of samples predicted in each class when applying the model on both the test and your input datasets.</div>
                 </div>
-                <br>
+                <br>     
                 <div class="row" id='section-header'>Density chart</div>
+                <div class="col">
+                    <select id="label-list"></select>
+                </div>
                 <div class="row">
                     <div class="col" id='kde-chart'></div>
                     <div class="col">
