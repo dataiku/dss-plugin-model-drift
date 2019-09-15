@@ -26,7 +26,7 @@ $('#run_analyse').on('click', function(){
 function run_analyse($this, webappMessages, callback){
     $this.button('loading')
     var test_set = $("#dataset-list").val();    
-    $.getJSON(getWebAppBackendUrl('get_drift_metrics'), {'model_id': model_id, 'test_set': test_set}) // TODO: send model version too
+    $.getJSON(getWebAppBackendUrl('get_drift_metrics'), {'model_id': model_id, 'model_version': model_version,'test_set': test_set}) // TODO: send model version too
         .done( 
             function(data){
                 //location.reload() // reload the html to clean the error message if exist
@@ -167,7 +167,7 @@ function draw_kde(data, data_stats){
     
       $("#t-test").text('Student t-test: ' + JSON.stringify(data_stats[label_list[1]]));
       // Compute kernel density estimation
-      var kde = kernelDensityEstimator(kernelEpanechnikov(10), x.ticks(50));
+      var kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(50));
       var density1 =  kde(data[label_list[1]]['original']);
       var density2 =  kde(data[label_list[1]]['new']);
 
@@ -230,16 +230,16 @@ function draw_kde(data, data_stats){
     // Add X axis label:
     svg.append("text")
       .attr("text-anchor", "end")
-      .attr("x", width/2 + 70)
-      .attr("y", height + 30)
+      .attr("x", width/2 + 90)
+      .attr("y", height + 29)
       .attr("font-size", 12)
-      .text(" Prediction probability (in %) for label 1");
+      .text(" Probability predicted (in %) distribution ");
 
       // A function that update the chart when slider is moved?
       function updateChart(selectedGroup) {
         $("#t-test").text('Student t-test: ' + JSON.stringify(data_stats[selectedGroup]));
         // recompute density estimation        
-       kde = kernelDensityEstimator(kernelEpanechnikov(10), x.ticks(50));
+       kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(50));
        density1 =  kde(data[selectedGroup]['original']);
        density2 =  kde(data[selectedGroup]['new']);
       // first and last value of array must be zero otherwise the color fill will mess up
@@ -247,7 +247,18 @@ function draw_kde(data, data_stats){
       density2[0] = [0,0];
       density1[density1.length - 1] = [100,0];
       density2[density2.length - 1] = [100, 0];
-          
+      density1_array = density1.map(x=>x[1])
+      density2_array = density2.map(x=>x[1])
+      // add the y Axis
+      maxY = Math.max.apply(Math, density1_array.concat(density2_array));
+      console.warn(maxY, maxY*1.1);
+      y = d3.scaleLinear()
+                .range([height, 0])
+                .domain([0, maxY*1.1]);
+      
+      //svg.select(".y.axis") //select("g")
+      //    .call(y);
+
         // update the chart
         curve1
           .datum(density1)
@@ -323,10 +334,21 @@ function draw_feat_imp(data){
       // Add Y axis
       var y = d3.scaleLinear()
         .domain([0, maxY])
-        .range([ height, 0]);
+        .range([height, 0]);
       svg.append("g")
         .call(d3.axisLeft(y));
-    
+
+    box_y = Math.ceil((maxY/4) / 5) * 5;
+    box_width = Math.ceil((maxX/4) / 5) * 5;
+    box_height = maxY - box_y
+    console.warn(box_y, box_height)
+    var redBox = svg.append("rect")
+                .attr("x", 0)
+                .attr("y", y(box_y))
+                .attr("width", x(box_width))
+                .attr("height", y(box_height))
+                .attr("fill", "#ff832b")
+                .attr("opacity", 0.4);
     
     var tooltip = d3.select("#feat-imp-plot")
         .append("div")
@@ -394,7 +416,7 @@ function draw_feat_imp(data){
           .attr("cx", function (d) { return x(d['drift_model']); } )
           .attr("cy", function (d) { return y(d['original_model']); } )
           .attr("r", 6)
-          .style("fill", "#69b3a2")
+          .style("fill", "#2b67ff")
     .on("mouseover", tipMouseover2 )
     .on("mouseout", tipMouseout )
 }

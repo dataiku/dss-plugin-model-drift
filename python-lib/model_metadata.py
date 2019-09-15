@@ -4,14 +4,16 @@ import os
 import json
 from dataiku.doctor.posttraining.model_information_handler import PredictionModelInformationHandler
 
-def get_saved_model_version_id(model):
+def get_saved_model_version_id(model, model_version=None):
+    if model_version is None:
+        model_version = model_def.get('activeVersion')
     model_def = model.get_definition()
-    saved_model_version_id = 'S-{0}-{1}-{2}'.format(model_def.get('projectKey'), model_def.get('id'), model_def.get('activeVersion'))
+    saved_model_version_id = 'S-{0}-{1}-{2}'.format(model_def.get('projectKey'), model_def.get('id'), model_version)
     return saved_model_version_id
 
-def get_model_handler(model):
+def get_model_handler(model, model_version=None):
     my_data_dir = os.environ['DIP_HOME']
-    saved_model_version_id = get_saved_model_version_id(model)
+    saved_model_version_id = get_saved_model_version_id(model, model_version)
     return get_model_info_handler(saved_model_version_id)
 
 def get_model_info_handler(saved_model_version_id):

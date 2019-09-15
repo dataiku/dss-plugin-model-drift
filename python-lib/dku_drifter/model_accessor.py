@@ -27,6 +27,8 @@ class ModelAccessor:
         predictor = self.get_predictor()
         clf = predictor._clf
         feature_importance = []
+        x = clf.feature_importances_
+        y = predictor.get_features
         for feature_name, feat_importance in zip(predictor.get_features(), clf.feature_importances_):
             feature_importance.append({
                 'feature': feature_name,

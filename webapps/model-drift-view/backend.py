@@ -3,7 +3,7 @@ from flask import request
 import traceback
 import logging
 from dku_drifter import DriftAnalyzer, ModelAccessor
-from commons import get_model_handler
+from model_metadata import get_model_handler
 logger = logging.getLogger(__name__)
 
 
@@ -28,11 +28,12 @@ def get_dataset_list():
 def get_drift_metrics():
     try:
         model_id = request.args.get('model_id')
+        model_version = request.args.get('model_version')
         test_set = request.args.get('test_set')
         new_test_df = dataiku.Dataset(test_set).get_dataframe()
 
         model = dataiku.Model(model_id)
-        model_handler = get_model_handler(model)
+        model_handler = get_model_handler(model, model_version=model_version)
         model_accessor = ModelAccessor(model_handler)
 
         drifter = DriftAnalyzer(model_accessor)
