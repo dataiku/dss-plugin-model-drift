@@ -13,7 +13,7 @@
     <div id='error_message'></div>
     <div class="row">
         <div class="col-md-auto">
-             Please choose the new test set
+             Please choose a test set to compute drift
         </div>
         <div class="col-md-auto">
             <select id="dataset-list"></select>
@@ -45,7 +45,7 @@
                 <div class="row" id='section-header'>Fugacity</div>
                 <div class="row">
                     <div class="col" id='fugacity-score'></div>
-                    <div class="col" id='fugacity-score-explain'>Fugacity expresses the difference between expected and observedw samples. We compare the proportion of samples predicted in each class when applying the model on both the test and your input datasets.</div>
+                    <div class="col" id='fugacity-score-explain'>Fugacity expresses the difference between expected and observed samples. We compare the proportion of samples predicted in each class when applying the model on both the original test and your input datasets.</div>
                 </div>
                 <br>     
                 <div class="row" id='section-header'>Density chart</div>
@@ -55,9 +55,10 @@
                 <div class="row">
                     <div class="col" id='kde-chart'></div>
                     <div class="col">
-                        <div class='row' id='t-test'>Student t-test</div>
+                        <div class='row' id='t-test'></div>
+                        <div class='row' id='power'></div>
                         <br>
-                        <div class='row' id='kde-explain'>The density chart illustrates how the test dataset predicted probability distribution differs from the selected dataset predicted probability distribution. The density functions show the probability density of predicted rows in the test dataset (as positive) vs predicted rows in the selected dataset (as positive). A highly drifted model fully separates the density functions.<br><br> The t-test above aims at determining whether there is a significant difference between the mean of the two probability predicted distributions on the test dataset and on the selected dataset.</div>
+                        <div class='row' id='kde-explain'>The density chart illustrates how the original test dataset predicted probability distribution differs from that of the selected dataset. The density functions show the probability density of predicted rows in the test dataset (as positive) vs predicted rows in the selected dataset (as positive). A highly drifted model fully separates the density functions.<br><br> The t-test above aims at determining whether there is a significant difference between the mean of the two probability predicted distributions on the test dataset and on the selected dataset. Usually a p-value smaller than 0.005 means that the null hypothesis (the two populations have identical average values) is rejected.<br><br> The statistical power of a t-test is the probability that it correctly rejects the null hypothesis. It is computed with sample size of 500 and alpha at 0.05</be></div>
                     </div>
                 </div>
             </div>
@@ -70,7 +71,7 @@
             <div class="panel-body">
                 <div class="row">
                     <div class="col" id='feat-imp-plot'></div>
-                    <div class="col" id='feat-imp-plot-explain'>The scatter plot shows how important each features used in the model are in the drift detection model. On the x-axis is the drift feature importance ranking, i.e. the feature importance in the drift detection model. The closer the point is to the left, the more the feature was important in the drift model. On the y-axis is the original feature importance ranking.</div>
+                    <div class="col" id='feat-imp-plot-explain'>The scatter plot shows how important each features used in the model are in the drift detection model. On the x-axis is the drift feature importance ranking, i.e. the feature importance in the drift detection model. The closer the point is to the left, the more the feature was important in the drift model. On the y-axis is the original feature importance ranking.<br><br> Features that are in the red zone are those that need to be carefully examined as they are both important in the original and the drift models.</div>
                 </div>
             </div>
         </div>

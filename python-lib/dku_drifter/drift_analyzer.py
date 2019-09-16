@@ -7,12 +7,15 @@ import numpy as np
 import logging
 import math
 from scipy import stats
+from statsmodels.stats.power import TTestIndPower
+from sklearn.neighbors import KernelDensity
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
 from doctor_handler import get_saved_model_version_id, get_model_info_handler
 from preprocessing import  Preprocessor
 from model_accessor import ModelAccessor
 from model_tools import mroc_auc_score
+
 logger = logging.getLogger(__name__)
 
 
@@ -103,7 +106,7 @@ class DriftAnalyzer:
         drift_accuracy = round(accuracy_score(test_Y, predicted_Y),2)
         return drift_accuracy
     
-    def _get_predictions(self, new_df, limit=500):     
+    def _get_predictions(self, new_df, limit=10000):     
         """
         The result of model_accessor.predict() is a dataframe prediction|proba_0|proba_1|...
         """
@@ -137,6 +140,21 @@ class DriftAnalyzer:
         
         return [original_fugacity, new_fugacity]
 
+    def _get_stat_test3(self, kde_dict, alpha=0.05):
+        
+        power_analysis = TTestIndPower()
+        stat_test_dict = {}
+        for label in kde_dict.keys():
+            kde_original = [x[1] for x in kde_dict.get(label).get('original')]
+            kde_new = [x [1] for x in kde_dict.get(label).get('new')]
+            # this effect size has an equal variance assumption (?)
+            effect_size = np.abs((np.mean(kde_original) - np.mean(kde_new)))/np.std(kde_original)
+            power = power_analysis.power(effect_size=effect_size, nobs1=len(kde_original), alpha=0.05)
+            t_test = stats.ttest_ind(kde_original, kde_new, equal_var=False)[-1]
+            stat_test_dict[label] = {'t_test': round(t_test,4), 'power': round(power,4)}
+        
+        return stat_test_dict
+
     
     def _get_stat_test2(self, prediction_dict, alpha=0.05):
         
@@ -149,7 +167,7 @@ class DriftAnalyzer:
             original_probas = original_prediction_df[column].values
             new_probas = new_prediction_df[column].values
             t_test = stats.ttest_ind(original_probas, new_probas, equal_var=False)[-1]
-            stat_test_dict[column] = round(t_test, 3)
+            stat_test_dict[column] = round(t_test, 5)
             
         logger.warn('STAT TEST:{}'.format(stat_test_dict))
         return stat_test_dict
@@ -159,7 +177,7 @@ class DriftAnalyzer:
         t_test = stats.ttest_ind(x,y, equal_var=False)[-1]
         #ks_test = stats.ks_2samp(x,y)[-1]
         #and_test = stats.anderson_ksamp([x,y])[-1]
-        pvals = {"t_test": round(t_test,4)}#,"ks_test":ks_test,"and_test":and_test} 
+        pvals = {"t_test": t_test}#,"ks_test":ks_test,"and_test":and_test} 
         h0= True
         for test,pval in pvals.items():
             if pval < alpha:
@@ -168,6 +186,33 @@ class DriftAnalyzer:
         if h0:
             logger.info("According to the data, the independence hypothesis is validated by all tests.")
         return pvals
+    
+    def format_proba_density(self, data, sample_weight=None):
+        """
+        https://github.com/dataiku/dip/blob/e14c5b4f853081a3d481e9c13e71ea524ec9eec0/src/main/python/dataiku/doctor/prediction/classification_scoring.py#L392
+        """
+        data = np.array(data)
+        if len(data) == 0:
+            return []
+        h = 1.06 * np.std(data) * math.pow(len(data), -.2)
+        if h <= 0:
+            h = 0.06
+        if len(np.unique(data)) == 1:
+            sample_weight = None
+
+        X_plot = np.linspace(0, 100, 500, dtype='int')[:, np.newaxis]
+        kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
+        Y_plot = np.exp(kde.score_samples(X_plot))
+        Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
+        return zip(X_plot.ravel(), Y_plot)
+    
+    def get_kde(self, predictions):
+        kde_dict = {}
+        for label in predictions.keys():
+            kde_original = self.format_proba_density(predictions.get(label).get('original'))  
+            kde_new = self.format_proba_density(predictions.get(label).get('new')) 
+            kde_dict[label] = {'original':kde_original, 'new':kde_new}
+        return kde_dict
     
     def generate_drift_metrics(self, new_df, drift_features, drift_clf):
         logger.info("Computing drift metrics ...")
@@ -186,8 +231,11 @@ class DriftAnalyzer:
                 original_proba = np.around(prediction_dict.get('original')[label].values,2).tolist()
                 new_proba = np.around(prediction_dict.get('new')[label].values,2).tolist()
                 predictions_by_class[label] = {'original': original_proba, 'new': new_proba}
+        
+        kde_dict = self.get_kde(predictions_by_class)
+        
         fugacity_metrics = self._get_frugacity(prediction_dict)
         #stat_metrics = self._get_stat_test(prediction_metrics.get('original'), prediction_metrics.get('new'))
-        stat_metrics = self._get_stat_test2(prediction_dict)
+        stat_metrics = self._get_stat_test3(kde_dict)
         label_list = [label for label in fugacity_metrics[0].keys() if label != 'source']
-        return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy,'predictions': predictions_by_class, 'stat_metrics':stat_metrics, 'fugacity': fugacity_metrics, 'label_list': label_list}
+        return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy,'kde': kde_dict, 'stat_metrics':stat_metrics, 'fugacity': fugacity_metrics, 'label_list': label_list}

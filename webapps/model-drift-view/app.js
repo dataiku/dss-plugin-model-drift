@@ -17,19 +17,33 @@ $.getJSON(getWebAppBackendUrl('get_dataset_list'))
 
 
 $('#run_analyse').on('click', function(){
-    var $this = $(this);
-    run_analyse($this, webappMessages, draw);
+    sessionStorage.setItem("reloading", "true");
+    localStorage.setItem("test_set", $("#dataset-list").val());
+
+    $this = $(this);
+    //run_analyse($this, webappMessages, draw);
+    location.reload();
     }                
 )
 
+window.onload = function(){
+    var reloading = sessionStorage.getItem("reloading");
+    if (reloading){
+        sessionStorage.removeItem("reloading");
+        $this = $('#run_analyse');
+        run_analyse($this, webappMessages, draw);
+    }
+}
 
 function run_analyse($this, webappMessages, callback){
+    var test_set = localStorage.getItem("test_set");
+    document.getElementById("dataset-list").value = test_set;
     $this.button('loading')
-    var test_set = $("#dataset-list").val();    
+    //var test_set = $("#dataset-list").val();    
+    console.warn('TEST SET', test_set)
     $.getJSON(getWebAppBackendUrl('get_drift_metrics'), {'model_id': model_id, 'model_version': model_version,'test_set': test_set}) // TODO: send model version too
         .done( 
             function(data){
-                //location.reload() // reload the html to clean the error message if exist
                 $this.button('reset');
                 $('#drift-score').text(data['drift_accuracy']);                
                 $('#error_message').html('');
@@ -71,20 +85,10 @@ function getMaxY(data) {
 function draw(data){
     draw_fugacity(data['fugacity']);
     console.warn(data);
-    draw_kde(data['predictions'], data['stat_metrics']);
+    draw_kde(data['kde'], data['stat_metrics']);
     draw_feat_imp(data['feature_importance']);
 }
 
-
-function show_stats(data){
-  console.warn('STATS', data);
-  var label = $("#label-list").val();    
-  $("#t-test").text('Student t-test: ' + JSON.stringify(data[label]));
-  d3.select("#label-list").on("change", function(d){
-    label = this.value;
-    $("#t-test").text('Student t-test: ' + JSON.stringify(data[label]));
-  })    
-}
 
 function draw_fugacity(data){
     document.getElementById('fugacity-score').innerHTML = json2table(data, 'table');
@@ -165,11 +169,14 @@ function draw_kde(data, data_stats){
           .attr("transform", "translate(0," + height + ")")
           .call(d3.axisBottom(x));
     
-      $("#t-test").text('Student t-test: ' + JSON.stringify(data_stats[label_list[1]]));
+      t_test = data_stats[label_list[1]]['t_test'];
+      power = data_stats[label_list[1]]['power'];
+      $("#t-test").text('T-test p-value: ' + t_test);
+      $("#power").text('Statistical power: '+ power);
       // Compute kernel density estimation
-      var kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(50));
-      var density1 =  kde(data[label_list[1]]['original']);
-      var density2 =  kde(data[label_list[1]]['new']);
+      //var kde = kernelDensityEstimator(kernelEpan echnikov(7), x.ticks(100));
+      var density1 =  data[label_list[1]]['original'];
+      var density2 =  data[label_list[1]]['new'];
 
       density1_array = density1.map(x=>x[1])
       density2_array = density2.map(x=>x[1])
@@ -180,7 +187,7 @@ function draw_kde(data, data_stats){
       density1[density1.length - 1] = [100,0];
       density2[density2.length - 1] = [100, 0];
     
-    
+      console.warn('DENSITY', density1);
       // add the y Axis
       var maxY = Math.max.apply(Math, density1_array.concat(density2_array));
       var y = d3.scaleLinear()
@@ -220,7 +227,7 @@ function draw_kde(data, data_stats){
               .x(function(d) { return x(d[0]); })
               .y(function(d) { return y(d[1]); })
           );
-
+ 
 
     // Handmade legend
     svg.append("circle").attr("cx",280).attr("cy",10).attr("r", 6).style("fill", "#2b67ff")
@@ -237,11 +244,16 @@ function draw_kde(data, data_stats){
 
       // A function that update the chart when slider is moved?
       function updateChart(selectedGroup) {
-        $("#t-test").text('Student t-test: ' + JSON.stringify(data_stats[selectedGroup]));
+          
+          t_test = data_stats[label_list[1]]['t_test'];
+          power = data_stats[label_list[1]]['power'];
+          $("#t-test").text('T-test p-value: ' + t_test);
+          $("#power").text('Statistical power: '+ power);          
+          
         // recompute density estimation        
-       kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(50));
-       density1 =  kde(data[selectedGroup]['original']);
-       density2 =  kde(data[selectedGroup]['new']);
+       //kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(20));
+       density1 =  data[selectedGroup]['original'];
+       density2 =  data[selectedGroup]['new'];
       // first and last value of array must be zero otherwise the color fill will mess up
       density1[0] = [0,0];
       density2[0] = [0,0];
@@ -252,14 +264,13 @@ function draw_kde(data, data_stats){
       // add the y Axis
       maxY = Math.max.apply(Math, density1_array.concat(density2_array));
       console.warn(maxY, maxY*1.1);
-      y = d3.scaleLinear()
-                .range([height, 0])
-                .domain([0, maxY*1.1]);
+      y.domain([0, maxY*1.1]);
       
       //svg.select(".y.axis") //select("g")
       //    .call(y);
 
         // update the chart
+       
         curve1
           .datum(density1)
           .transition()
@@ -347,7 +358,7 @@ function draw_feat_imp(data){
                 .attr("y", y(box_y))
                 .attr("width", x(box_width))
                 .attr("height", y(box_height))
-                .attr("fill", "#ff832b")
+                .attr("fill", "red")
                 .attr("opacity", 0.4);
     
     var tooltip = d3.select("#feat-imp-plot")
@@ -417,6 +428,7 @@ function draw_feat_imp(data){
           .attr("cy", function (d) { return y(d['original_model']); } )
           .attr("r", 6)
           .style("fill", "#2b67ff")
+          .style("opacity", 1) // started as 0!
     .on("mouseover", tipMouseover2 )
     .on("mouseout", tipMouseout )
 }

@@ -23,7 +23,11 @@
 
 #t-test{
     font-weight: bold;
-    font-size: 25px;
+    font-size: 20px;
+}
+#power{
+    font-weight: bold;
+    font-size: 20px;
 }
 #drift-score{
     font-size: 50px;

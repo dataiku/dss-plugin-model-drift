@@ -5,9 +5,9 @@ import json
 from dataiku.doctor.posttraining.model_information_handler import PredictionModelInformationHandler
 
 def get_saved_model_version_id(model, model_version=None):
+    model_def = model.get_definition()
     if model_version is None:
         model_version = model_def.get('activeVersion')
-    model_def = model.get_definition()
     saved_model_version_id = 'S-{0}-{1}-{2}'.format(model_def.get('projectKey'), model_def.get('id'), model_version)
     return saved_model_version_id
 
