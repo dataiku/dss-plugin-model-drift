@@ -21,14 +21,26 @@
     font-size: 15px;
 }
 
-#t-test{
-    font-weight: bold;
-    font-size: 20px;
+#fugacity-score-explain{
+    color: #50859F;
+    background: #E6EEF3;
 }
-#power{
-    font-weight: bold;
-    font-size: 20px;
+
+#kde-explain{
+    color: #50859F;
+    background: #E6EEF3;
 }
+
+#drift-score-explain{
+    color: #50859F;
+    background: #E6EEF3;
+}
+
+#feat-imp-plot-explain{
+      color: #50859F;
+    background: #E6EEF3;
+}
+
 #drift-score{
     font-size: 50px;
     font-weight: bold;

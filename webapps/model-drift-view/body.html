@@ -3,6 +3,7 @@
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"></link>
 <script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.13.0/d3-legend.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.js"></script>
@@ -55,10 +56,7 @@
                 <div class="row">
                     <div class="col" id='kde-chart'></div>
                     <div class="col">
-                        <div class='row' id='t-test'></div>
-                        <div class='row' id='power'></div>
-                        <br>
-                        <div class='row' id='kde-explain'>The density chart illustrates how the original test dataset predicted probability distribution differs from that of the selected dataset. The density functions show the probability density of predicted rows in the test dataset (as positive) vs predicted rows in the selected dataset (as positive). A highly drifted model fully separates the density functions.<br><br> The t-test above aims at determining whether there is a significant difference between the mean of the two probability predicted distributions on the test dataset and on the selected dataset. Usually a p-value smaller than 0.005 means that the null hypothesis (the two populations have identical average values) is rejected.<br><br> The statistical power of a t-test is the probability that it correctly rejects the null hypothesis. It is computed with sample size of 500 and alpha at 0.05</be></div>
+                        <div class='row' id='kde-explain'></div>                            
                     </div>
                 </div>
             </div>

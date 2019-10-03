@@ -19,9 +19,7 @@ $.getJSON(getWebAppBackendUrl('get_dataset_list'))
 $('#run_analyse').on('click', function(){
     sessionStorage.setItem("reloading", "true");
     localStorage.setItem("test_set", $("#dataset-list").val());
-
     $this = $(this);
-    //run_analyse($this, webappMessages, draw);
     location.reload();
     }                
 )
@@ -39,8 +37,6 @@ function run_analyse($this, webappMessages, callback){
     var test_set = localStorage.getItem("test_set");
     document.getElementById("dataset-list").value = test_set;
     $this.button('loading')
-    //var test_set = $("#dataset-list").val();    
-    console.warn('TEST SET', test_set)
     $.getJSON(getWebAppBackendUrl('get_drift_metrics'), {'model_id': model_id, 'model_version': model_version,'test_set': test_set}) // TODO: send model version too
         .done( 
             function(data){
@@ -48,10 +44,6 @@ function run_analyse($this, webappMessages, callback){
                 $('#drift-score').text(data['drift_accuracy']);                
                 $('#error_message').html('');
                 var label_list = data['label_list'];
-                //console.warn(label_list);
-                //$.each(label_list, function(i, option) {
-                //    $('#label-list').append($('<option/>').attr("value", option).text(option));
-                // });
                 callback(data);
                 document.getElementById('info-panel').style.display = "block";
             }
@@ -80,8 +72,6 @@ function getMaxY(data) {
 }
 
 
-
-
 function draw(data){
     draw_fugacity(data['fugacity']);
     console.warn(data);
@@ -102,7 +92,7 @@ function json2table(json, classes){
     var headerRow = '';
     var bodyRows = '';
 
-     classes = classes || '';
+   classes = classes || '';
 
       function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
@@ -133,7 +123,6 @@ function json2table(json, classes){
 
 
 function draw_kde(data, data_stats){
-    console.warn(data)
     var margin = {top: 30, right: 30, bottom: 30, left: 50};
     var width = 460 - margin.left - margin.right;
     var height = 400 - margin.top - margin.bottom;
@@ -148,10 +137,10 @@ function draw_kde(data, data_stats){
               "translate(" + margin.left + "," + margin.top + ")");
 
     // List of groups (here I have one group per column)
-      var label_list = Object.keys(data);
+    var label_list = Object.keys(data);
 
-      // add the options to the button
-      d3.select("#label-list")
+    // add the options to the button
+    d3.select("#label-list")
         .selectAll('myOptions')
         .data(label_list)
         .enter()
@@ -161,72 +150,70 @@ function draw_kde(data, data_stats){
         .property("selected", function(d){ return d === label_list[1]; })
 
     
-      // add the x Axis
-      var x = d3.scaleLinear()
-          .domain([0,100])
-          .range([0, width]);
-      svg.append("g")
-          .attr("transform", "translate(0," + height + ")")
-          .call(d3.axisBottom(x));
+    // add the x Axis
+    var x = d3.scaleLinear()
+        .domain([0,100])
+        .range([0, width]);
+    svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x));
     
-      t_test = data_stats[label_list[1]]['t_test'];
-      power = data_stats[label_list[1]]['power'];
-      $("#t-test").text('T-test p-value: ' + t_test);
-      $("#power").text('Statistical power: '+ power);
-      // Compute kernel density estimation
-      //var kde = kernelDensityEstimator(kernelEpan echnikov(7), x.ticks(100));
-      var density1 =  data[label_list[1]]['original'];
-      var density2 =  data[label_list[1]]['new'];
+    t_test = data_stats[label_list[1]]['t_test'];
+    power = data_stats[label_list[1]]['power'];
+    kde_text = 'The density chart illustrates how the original test dataset predicted probability distribution differs from that of the selected dataset. The density functions show the probability density of predicted rows in the test dataset (as positive) vs predicted rows in the selected dataset (as positive). A highly drifted model fully separates the density functions. <br> <br> The t-test aims at determining whether there is a significant difference between the mean of the two probability predicted distributions on the test dataset and on the selected dataset. Usually a p-value smaller than 0.005 means that the null hypothesis (the two populations have identical average values) is rejected. Here the p-value is ' + t_test
+    $("#kde-explain").text(kde_text);
 
-      density1_array = density1.map(x=>x[1])
-      density2_array = density2.map(x=>x[1])
+    var density1 =  data[label_list[1]]['original'];
+    var density2 =  data[label_list[1]]['new'];
 
-      // first and last value of array must be zero otherwise the color fill will mess up
-      density1[0] = [0,0];
-      density2[0] = [0,0];
-      density1[density1.length - 1] = [100,0];
-      density2[density2.length - 1] = [100, 0];
+    density1_array = density1.map(x=>x[1])
+    density2_array = density2.map(x=>x[1])
+
+    // first and last value of array must be zero otherwise the color fill will mess up
+    density1[0] = [0,0];
+    density2[0] = [0,0];
+    density1[density1.length - 1] = [100,0];
+    density2[density2.length - 1] = [100, 0];
     
-      console.warn('DENSITY', density1);
-      // add the y Axis
-      var maxY = Math.max.apply(Math, density1_array.concat(density2_array));
-      var y = d3.scaleLinear()
-                .range([height, 0])
-                .domain([0, maxY*1.1]);
-      svg.append("g")
-          .call(d3.axisLeft(y));
-  
-    
-      // Plot the area
-      var curve1 = svg.append("path")
-          .attr("class", "mypath")
-          .datum(density1)
-          .attr("fill", "#2b67ff")
-          .attr("opacity", ".6")
-          .attr("stroke", "#000")
-          .attr("stroke-width", 2)
-          .attr("stroke-linejoin", "round")
-          .attr("d",  d3.line()
-            .curve(d3.curveBasis)
-              .x(function(d) { return x(d[0]); })
-              .y(function(d) { return y(d[1]); })
-          );
+    // add the y Axis
+    var maxY = Math.max.apply(Math, density1_array.concat(density2_array));
+    var y = d3.scaleLinear()
+            .range([height, 0])
+            .domain([0, maxY*1.1]);
+    svg.append("g")
+      .call(d3.axisLeft(y));
 
     
-      // Plot the area
-      var curve2 = svg.append("path")
-          .attr("class", "mypath")
-          .datum(density2)
-          .attr("fill", "#ff832b")
-          .attr("opacity", ".6")
-          .attr("stroke", "#000")
-          .attr("stroke-width", 2)
-          .attr("stroke-linejoin", "round")
-          .attr("d",  d3.line()
-            .curve(d3.curveBasis)
-              .x(function(d) { return x(d[0]); })
-              .y(function(d) { return y(d[1]); })
-          );
+    // Plot the area
+    var curve1 = svg.append("path")
+      .attr("class", "mypath")
+      .datum(density1)
+      .attr("fill", "#2b67ff")
+      .attr("opacity", ".6")
+      .attr("stroke", "#000")
+      .attr("stroke-width", 2)
+      .attr("stroke-linejoin", "round")
+      .attr("d",  d3.line()
+        .curve(d3.curveBasis)
+          .x(function(d) { return x(d[0]); })
+          .y(function(d) { return y(d[1]); })
+      );
+
+    
+    // Plot the area
+    var curve2 = svg.append("path")
+      .attr("class", "mypath")
+      .datum(density2)
+      .attr("fill", "#ff832b")
+      .attr("opacity", ".6")
+      .attr("stroke", "#000")
+      .attr("stroke-width", 2)
+      .attr("stroke-linejoin", "round")
+      .attr("d",  d3.line()
+        .curve(d3.curveBasis)
+          .x(function(d) { return x(d[0]); })
+          .y(function(d) { return y(d[1]); })
+      );
  
 
     // Handmade legend
@@ -243,7 +230,7 @@ function draw_kde(data, data_stats){
       .text(" Probability predicted (in %) distribution ");
 
       // A function that update the chart when slider is moved?
-      function updateChart(selectedGroup) {
+    function updateChart(selectedGroup) {
           
           t_test = data_stats[label_list[1]]['t_test'];
           power = data_stats[label_list[1]]['power'];
@@ -251,26 +238,21 @@ function draw_kde(data, data_stats){
           $("#power").text('Statistical power: '+ power);          
           
         // recompute density estimation        
-       //kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(20));
-       density1 =  data[selectedGroup]['original'];
-       density2 =  data[selectedGroup]['new'];
-      // first and last value of array must be zero otherwise the color fill will mess up
-      density1[0] = [0,0];
-      density2[0] = [0,0];
-      density1[density1.length - 1] = [100,0];
-      density2[density2.length - 1] = [100, 0];
-      density1_array = density1.map(x=>x[1])
-      density2_array = density2.map(x=>x[1])
-      // add the y Axis
-      maxY = Math.max.apply(Math, density1_array.concat(density2_array));
-      console.warn(maxY, maxY*1.1);
-      y.domain([0, maxY*1.1]);
-      
-      //svg.select(".y.axis") //select("g")
-      //    .call(y);
+        //kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(20));
+        density1 =  data[selectedGroup]['original'];
+        density2 =  data[selectedGroup]['new'];
+        // first and last value of array must be zero otherwise the color fill will mess up
+        density1[0] = [0,0];
+        density2[0] = [0,0];
+        density1[density1.length - 1] = [100,0];
+        density2[density2.length - 1] = [100, 0];
+        density1_array = density1.map(x=>x[1])
+        density2_array = density2.map(x=>x[1])
+        // add the y Axis
+        maxY = Math.max.apply(Math, density1_array.concat(density2_array));
+        y.domain([0, maxY*1.1]);
 
         // update the chart
-       
         curve1
           .datum(density1)
           .transition()
@@ -297,138 +279,68 @@ function draw_kde(data, data_stats){
         selectedGroup = this.value
         updateChart(selectedGroup)
       })    
-    
-    // Function to compute density
-    function kernelDensityEstimator(kernel, X) {
-      return function(V) {
-        return X.map(function(x) {
-          return [x, d3.mean(V, function(v) { return kernel(x - v); })];
-        });
-      };
-    }
-    function kernelEpanechnikov(k) {
-      return function(v) {
-        return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
-      };
-    }
 }
 
 
 function draw_feat_imp(data){
-    var values = Object.keys(data).map(function(key){
-        return data[key];
-    });
-    var maxX = getMaxX(values);
-    var maxY = getMaxY(values);    
+    //sort bars based on value
+    data = data.sort(function (a, b) {
+        return d3.descending(a['original_model'], b['original_model']);
+    })
     
-    var margin = {top: 10, right: 30, bottom: 30, left: 60},
+    // set the dimensions and margins of the graph
+    var margin = {top: 20, right: 30, bottom: 40, left: 90},
         width = 460 - margin.left - margin.right,
         height = 400 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
-    var svg = d3.select("#feat-imp-plot").append("svg")
+    var svg = d3.select("#feat-imp-plot")
+      .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
       .append("g")
         .attr("transform",
               "translate(" + margin.left + "," + margin.top + ")");
+    
+    var max_x_drift = data.reduce((max, data) => data['drift_model'] > max ? data['drift_model'] : max, data[0]['drift_model']);  
 
-    //Read the data
-      // Add X axis
+    var color = d3.scaleLinear()
+        .domain([0, max_x_drift])
+        .range(['#33fa20','#ff0e00'])
+        .interpolate(d3.interpolateHcl); 
+    
+    
+    var max_x = data.reduce((max, data) => data['original_model'] > max ? data['original_model'] : max, data[0]['original_model']);  
+
+    // Add X axis
     var x = d3.scaleLinear()
-        .domain([0, maxX])
+        .domain([0, max_x])
         .range([ 0, width]);
-      svg.append("g")
+    svg.append("g")
         .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x));
+        .call(d3.axisBottom(x))
+        .selectAll("text")
+          .attr("transform", "translate(-10,0)rotate(-45)")
+          .style("text-anchor", "end");
 
-      // Add Y axis
-      var y = d3.scaleLinear()
-        .domain([0, maxY])
-        .range([height, 0]);
-      svg.append("g")
-        .call(d3.axisLeft(y));
+    // Y axis
+    var y = d3.scaleBand()
+        .range([ 0, height ])
+        .domain(data.map(function(d) { return d['feature']; }))
+        .padding(.1);
+    svg.append("g")
+        .call(d3.axisLeft(y))
 
-    box_y = Math.ceil((maxY/4) / 5) * 5;
-    box_width = Math.ceil((maxX/4) / 5) * 5;
-    box_height = maxY - box_y
-    console.warn(box_y, box_height)
-    var redBox = svg.append("rect")
-                .attr("x", 0)
-                .attr("y", y(box_y))
-                .attr("width", x(box_width))
-                .attr("height", y(box_height))
-                .attr("fill", "red")
-                .attr("opacity", 0.4);
-    
-    var tooltip = d3.select("#feat-imp-plot")
-        .append("div")
-        .style("opacity", 0)
-        .attr("class", "tooltip")
-        .style("background-color", "white")
-        .style("border", "solid")
-        .style("border-width", "1px")
-        .style("border-radius", "5px")
-        .style("padding", "10px") 
-        .style("font-size", "20px")
-      
-    
-        
-        var tipMouseover = function(d) {
-          var html  = d["feature"];
-          tooltip.html(html)
-              .style("left", d + "px")
-              .style("top", d  + "px")
-            .transition()
-              .duration(200) // ms
-              .style("opacity", .9) // started as 0!
-      };
-    
-        var tipMouseover2 = function(d){
-            var html  = d["feature"];
-            var matrix = this.getScreenCTM().translate(+ this.getAttribute("cx"), + this.getAttribute("cy"));
-            tooltip.html(html)
-                .style("left", d3.select(this).attr("cx")+ "px")     
-                .style("top", d3.select(this).attr("cy") + "px")
-                .transition()
-                  .duration(200) // ms
-                  .style("opacity", .9) // started as 0!
-        };
-    
-      // Add X axis label:
-      svg.append("text")
-          .attr("text-anchor", "end")
-          .attr("x", width/2 + margin.left + 50)
-          .attr("y", height + margin.top + 20)
-          .attr("font-size", 12)
-          .text("Drift model feature importance ranking");
-
-      // Y axis label:
-      svg.append("text")
-          .attr("text-anchor", "end")
-          .attr("transform", "rotate(-90)")
-          .attr("y", -margin.left + 20)
-          .attr("x", -margin.top - height/2 + 120)
-          .attr("font-size", 12)
-          .text("Original model feature importance ranking");
-    
-      // tooltip mouseout event handler
-      var tipMouseout = function(d) {
-          tooltip.transition()
-              .duration(300) // ms
-              .style("opacity", 0); // don't care about position!
-      };
-    // Add dots
-      svg.append('g')
-        .selectAll("dot")
-        .data(values)
+    //Bars
+    svg.selectAll("myRect")
+        .data(data)
         .enter()
-        .append("circle")
-          .attr("cx", function (d) { return x(d['drift_model']); } )
-          .attr("cy", function (d) { return y(d['original_model']); } )
-          .attr("r", 6)
-          .style("fill", "#2b67ff")
-          .style("opacity", 1) // started as 0!
-    .on("mouseover", tipMouseover2 )
-    .on("mouseout", tipMouseout )
+        .append("rect")
+        .attr("x", x(0) )
+        .attr("y", function(d) { return y(d['feature']); })
+        .attr("width", function(d) { return x(d['original_model']); })
+        .attr("height", y.bandwidth() )
+        .attr("fill", function(d) {return color(d['drift_model'])})
+        .attr("opacity", 0.8)
+        .append("text") 
 }

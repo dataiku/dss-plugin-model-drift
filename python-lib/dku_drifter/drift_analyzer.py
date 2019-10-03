@@ -70,11 +70,11 @@ class DriftAnalyzer:
         for feature_name, feat_importance in zip(drift_features, drift_clf.feature_importances_):
             feature_importance.append({
                 'feature': feature_name,
-                'importance': feat_importance
+                'importance': 100*feat_importance/sum(drift_clf.feature_importances_)
             })
             
-        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True).drop('importance', axis=1)
-        return dfx.rename_axis('importance').reset_index().set_index('feature')
+        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)#.drop('importance', axis=1)
+        return dfx.rename_axis('rank').reset_index().set_index('feature')
     
     def _get_feature_importance_metrics(self, drift_features, drift_clf, top_n):
         original_feature_importance_df = self.model_accessor.get_feature_importance()
@@ -84,10 +84,10 @@ class DriftAnalyzer:
         topn_original_feature = original_feature_importance_df.loc[topn_drift_feature.keys()].to_dict()['importance']
         
         feature_importance_list = []
-        for feature in topn_drift_feature.keys():
-            original_feat_rank = topn_original_feature.get(feature)
-            if not np.isnan(original_feat_rank):
-                feature_importance_info = {'original_model': original_feat_rank+1 , 'drift_model':topn_drift_feature.get(feature)+1, 'feature': feature}
+        for feature in topn_original_feature.keys():
+            drift_feat_rank = topn_drift_feature.get(feature)
+            if not np.isnan(drift_feat_rank):
+                feature_importance_info = {'original_model':topn_original_feature.get(feature, 0), 'drift_model':drift_feat_rank, 'feature':feature}
                 feature_importance_list.append(feature_importance_info)
             else:
                 logger.warn('Feature {} does not exist in the orignal test set.'.format(feature))
@@ -126,19 +126,18 @@ class DriftAnalyzer:
         original_prediction_df = prediction_dict.get('original')
         new_prediciton_df = prediction_dict.get('new')
         
-        original_fugacity = (100*original_prediction_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
-        for key in original_fugacity.keys():
-            new_key = "{} (%)".format(key)
-            original_fugacity[new_key] = original_fugacity.pop(key)
-        original_fugacity[' Source'] = 'Original set'
-        
+        original_fugacity = (100*original_prediction_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()        
         new_fugacity = (100*new_prediciton_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
-        for key in new_fugacity.keys():
-            new_key = "{} (%)".format(key)
-            new_fugacity[new_key] = new_fugacity.pop(key)
-        new_fugacity[' Source'] = 'New set'
+        fugacity = []
+        for key in original_fugacity.keys():
+            temp_fugacity = {}
+            new_key = "Predicted {} (%)".format(key)
+            temp_fugacity[' Score'] = new_key
+            temp_fugacity['Original test set'] = original_fugacity.pop(key)
+            temp_fugacity['New test set'] = new_fugacity.pop(key)
+            fugacity.append(temp_fugacity)
         
-        return [original_fugacity, new_fugacity]
+        return fugacity 
 
     def _get_stat_test3(self, kde_dict, alpha=0.05):
         
@@ -155,37 +154,6 @@ class DriftAnalyzer:
         
         return stat_test_dict
 
-    
-    def _get_stat_test2(self, prediction_dict, alpha=0.05):
-        
-        original_prediction_df = prediction_dict.get('original')
-        new_prediction_df = prediction_dict.get('new')
-        proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col] 
-        stat_test_dict = {}
-        
-        for column in proba_columns:
-            original_probas = original_prediction_df[column].values
-            new_probas = new_prediction_df[column].values
-            t_test = stats.ttest_ind(original_probas, new_probas, equal_var=False)[-1]
-            stat_test_dict[column] = round(t_test, 5)
-            
-        logger.warn('STAT TEST:{}'.format(stat_test_dict))
-        return stat_test_dict
-
-    def _get_stat_test(self, x,y, alpha=0.05):
-        '''return p-values for t-test, ks-test and anderson-test'''
-        t_test = stats.ttest_ind(x,y, equal_var=False)[-1]
-        #ks_test = stats.ks_2samp(x,y)[-1]
-        #and_test = stats.anderson_ksamp([x,y])[-1]
-        pvals = {"t_test": t_test}#,"ks_test":ks_test,"and_test":and_test} 
-        h0= True
-        for test,pval in pvals.items():
-            if pval < alpha:
-                logger.info("Independence hypothesis is rejected by %s at %.2f level"%(test,alpha))
-                h0 = False
-        if h0:
-            logger.info("According to the data, the independence hypothesis is validated by all tests.")
-        return pvals
     
     def format_proba_density(self, data, sample_weight=None):
         """
@@ -220,10 +188,6 @@ class DriftAnalyzer:
         drift_auc = self._get_drift_auc(drift_clf) 
         drift_accuracy = self._get_drift_accuracy(drift_clf)
         prediction_dict = self._get_predictions(new_df, limit=10000)
-        # for now we take only class 1
-        #class_1_original = np.around(prediction_dict.get('original')['proba_1'].values,2).tolist()
-        #class_1_new = np.around(prediction_dict.get('new')['proba_1'].values,2).tolist()
-        #predictions = {'original': class_1_original, 'new': class_1_new}
         
         predictions_by_class = {}
         for label in prediction_dict.get('original').columns:
@@ -233,9 +197,7 @@ class DriftAnalyzer:
                 predictions_by_class[label] = {'original': original_proba, 'new': new_proba}
         
         kde_dict = self.get_kde(predictions_by_class)
-        
         fugacity_metrics = self._get_frugacity(prediction_dict)
-        #stat_metrics = self._get_stat_test(prediction_metrics.get('original'), prediction_metrics.get('new'))
         stat_metrics = self._get_stat_test3(kde_dict)
         label_list = [label for label in fugacity_metrics[0].keys() if label != 'source']
         return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy,'kde': kde_dict, 'stat_metrics':stat_metrics, 'fugacity': fugacity_metrics, 'label_list': label_list}

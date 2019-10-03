@@ -23,20 +23,20 @@ class ModelAccessor:
     def get_predictor(self):
         return self.model_handler.get_predictor()
     
-    def get_feature_importance(self):
+    def get_feature_importance(self, top_n=20):
         predictor = self.get_predictor()
         clf = predictor._clf
         feature_importance = []
-        x = clf.feature_importances_
-        y = predictor.get_features
-        for feature_name, feat_importance in zip(predictor.get_features(), clf.feature_importances_):
+        feature_importances = clf.feature_importances_
+        feature_names = predictor.get_features()
+        for feature_name, feat_importance in zip(feature_names, feature_importances):
             feature_importance.append({
                 'feature': feature_name,
-                'importance': int(feat_importance)
+                'importance': 100*feat_importance/sum(feature_importances)
             })
             
-        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True).drop('importance', axis=1)
-        return dfx.rename_axis('importance').reset_index().set_index('feature')
+        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True).iloc[:top_n]#.drop('importance', axis=1)
+        return dfx.rename_axis('rank').reset_index().set_index('feature')
     
     def get_selected_features(self):
         selected_features = []
