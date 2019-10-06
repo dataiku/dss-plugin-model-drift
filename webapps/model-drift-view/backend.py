@@ -1,30 +1,21 @@
-import dataiku
-from flask import request
 import traceback
 import logging
-from dku_drifter import DriftAnalyzer, ModelAccessor
+from flask import request
+import dataiku
+from dku_data_drift import DriftAnalyzer, ModelAccessor
 from model_metadata import get_model_handler
 logger = logging.getLogger(__name__)
 
 
-@app.route('/get_dataset_list')
-def get_dataset_list():
-    """
-    Use the dataiku client api to retrieve the list of datasets in the current project. SO COOL!
-    Returns
-    -------
-    A dictionary containing the ``extracted_tree`` dataframe. 
-    """
-
+@app.route('/list-datasets')
+def list_datasets():
     project_key = dataiku.default_project_key()
     client = dataiku.api_client()
     project = client.get_project(project_key)
-    dataset_list = [{"name": dataset_dict['name']}
-                    for dataset_dict in project.list_datasets()]
+    dataset_list = [{"name": dataset_dict['name']} for dataset_dict in project.list_datasets()]
+    return json.dumps({'dataset_list': dataset_list})
 
-    return {'dataset_list': dataset_list}
-
-@app.route('/get_drift_metrics')
+@app.route('/get-drift-metrics')
 def get_drift_metrics():
     try:
         model_id = request.args.get('model_id')
@@ -38,8 +29,7 @@ def get_drift_metrics():
 
         drifter = DriftAnalyzer(model_accessor)
         drift_features, drift_clf = drifter.train_drift_model(new_test_df)
-        drift_metrics = drifter.generate_drift_metrics(new_test_df, drift_features, drift_clf)   
-        return drift_metrics
+        return json.dumps(drifter.compute_drift_metrics(new_test_df, drift_features, drift_clf), allow_nan=False)
     except:
         logger.error(traceback.format_exc())
         return traceback.format_exc(), 500

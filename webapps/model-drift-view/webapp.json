@@ -6,7 +6,7 @@
     },
     "baseType": "STANDARD",
     "hasBackend": "true",
-    "standardWebAppLibraries" : ["jquery", "dataiku", "bootstrap", "font_awesome"],
+    "standardWebAppLibraries" : ["jquery", "dataiku", "font_awesome"],
     "virtualWebAppAffinity" : "PREFER_VIRTUAL",
     "roles":[
         {

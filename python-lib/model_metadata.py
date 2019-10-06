@@ -1,5 +1,4 @@
 # coding: utf-8
-import dataiku
 import os
 import json
 from dataiku.doctor.posttraining.model_information_handler import PredictionModelInformationHandler

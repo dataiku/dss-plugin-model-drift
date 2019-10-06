@@ -1,79 +1,69 @@
-<link rel="stylesheet" href="/static/public/styles/1.0.0/dku-styles.css" />
+<link rel="stylesheet" href="/plugins/model-drift/resource/style.css" />
 <script src="/plugins/model-drift/resource/dku-helpers.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"></link>
 <script src="https://d3js.org/d3.v4.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.13.0/d3-legend.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.js"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.css" rel="stylesheet" type="text/css" />
 
 
-<div class="container">
-    <div id='error_message'></div>
-    <div class="row">
-        <div class="col-md-auto">
-             Please choose a test set to compute drift
-        </div>
-        <div class="col-md-auto">
-            <select id="dataset-list"></select>
-        </div>
-        <div class="col-md-auto">
-            <button class="btn btn-primary btn-lg" id='run_analyse' data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> Processing" type="button" >Run</button>
-        </div>       
+<div class="view-content" style="margin: 8px;">
+
+<div style="width: 1000px">
+    Model drift detection gives you insight on the applicability of a model.
+    Provide a dataset on which you want to know if you can confidently apply this model.
+    Model drift detection will then compare it to the data on which the model was initially evaluated.
+    If the dataset you provide is "similar" enough to the initial evaluation data, it gives you additional trust the applicability of your model.
+
+    <div style="margin-top: 8px">
+        <a href="https://www.dataiku.com/community/plugins/info/model-drift.html">Plugin documentation <i class="icon-external-link"></i></a>.
     </div>
-    <br>
-    
-    <div id='info-panel' style="display:none;">
-        <div class="panel panel-success" style="margin-left: 15px; margin-right: 15px">
-            <div class="panel-heading">
-                 <h3 class="panel-title">Drift Information</h3>
+</div>
+<div style="margin: 16px 0;">
+    Input dataset
+    <select id="dataset-selector" style="width: 200px; margin: 0 8px;"></select>
+    <a class="btn btn-primary" id="run-button" type="button">Run</a>
+</div>
+
+<div id="error_message" style="width: 1000px; box-sizing: border-box; padding: 0;"></div>
+
+<div id="info-panel" style="display: none;">
+    <div class="white-box">
+        <div class="explanation" style="float: right; width: calc(100% - 250px);">
+            <b>Lower is better</b> This score between 0 and 1 measures the discrepancy between the test dataset used to orginally evaluate the model and your input dataset. See the documentation for details.
+        </div>
+        <h2>Drift Score</h2>
+        <div id="drift-score"></div>
+    </div>
+
+    <div class="white-box">
+        <h2>Model Information</h2>
+
+        <div style="margin-bottom: 24px">
+            <div class="explanation" style="float: right; width: calc(100% - 500px);">
+                Fugacity expresses the difference between expected and observed samples. We compare the proportion of samples predicted in each class when applying the model on both the original test and your input datasets.
             </div>
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col" id='drift-score'></div>
-                    <div class="col" id='drift-score-explain'>Overall measure of the discrepancy between the test dataset (used at model training) and your input dataset. This score ranges between 0 and 1, higher scores imply more drift.</div>
-                </div>
-            </div>
+            <h4>Fugacity</h4>
+            <div id="fugacity-score"></div>
         </div>
 
-        <div class="panel panel-info" style="margin-left: 15px; margin-right: 15px">
-            <div class="panel-heading">
-                 <h3 class="panel-title">Model Information</h3>
+        <div>
+            <div class="explanation" style="float: right; width: calc(100% - 500px);">
+                The density chart illustrates how the original test dataset predicted probability distribution differs from that of the selected dataset. The density functions show the probability density of predicted rows in the test dataset (as positive) vs predicted rows in the selected dataset (as positive). A highly drifted model fully separates the density functions. <br> <br> The t-test aims at determining whether there is a significant difference between the mean of the two probability predicted distributions on the test dataset and on the selected dataset. Usually a p-value smaller than 0.005 means that the null hypothesis (the two populations have identical average values) is rejected. Here the p-value is
+                <span id="t-test-result"></span>
             </div>
-            <div class="panel-body">
-                <div class="row" id='section-header'>Fugacity</div>
-                <div class="row">
-                    <div class="col" id='fugacity-score'></div>
-                    <div class="col" id='fugacity-score-explain'>Fugacity expresses the difference between expected and observed samples. We compare the proportion of samples predicted in each class when applying the model on both the original test and your input datasets.</div>
-                </div>
-                <br>     
-                <div class="row" id='section-header'>Density chart</div>
-                <div class="col">
-                    <select id="label-list"></select>
-                </div>
-                <div class="row">
-                    <div class="col" id='kde-chart'></div>
-                    <div class="col">
-                        <div class='row' id='kde-explain'></div>                            
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel panel-warning" style="margin-left: 15px; margin-right: 15px">
-            <div class="panel-heading">
-                 <h3 class="panel-title">Feature Drift Overview</h3>
-            </div>
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col" id='feat-imp-plot'></div>
-                    <div class="col" id='feat-imp-plot-explain'>The scatter plot shows how important each features used in the model are in the drift detection model. On the x-axis is the drift feature importance ranking, i.e. the feature importance in the drift detection model. The closer the point is to the left, the more the feature was important in the drift model. On the y-axis is the original feature importance ranking.<br><br> Features that are in the red zone are those that need to be carefully examined as they are both important in the original and the drift models.</div>
-                </div>
-            </div>
+            <h4>
+                Density chart
+                <select id="label-list"></select>
+            </h4>
+            <div id="kde-chart"></div>
         </div>
     </div>
+
+    <div class="white-box">
+        <div class="explanation" style="float: right; width: calc(100% - 500px);">
+            The scatter plot shows how important each features used in the model are in the drift detection model. On the x-axis is the drift feature importance ranking, i.e. the feature importance in the drift detection model. The closer the point is to the left, the more the feature was important in the drift model. On the y-axis is the original feature importance ranking.<br><br> Features that are in the red zone are those that need to be carefully examined as they are both important in the original and the drift models.
+        </div>
+        <h2>Feature Drift Overview</h2>
+        <div id="feat-imp-plot"></div>
+    </div>
+</div>
 
 </div>
-        

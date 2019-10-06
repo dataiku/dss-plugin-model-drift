@@ -7,7 +7,7 @@
         "author": "Dataiku (Léo Dreyfus-Schmidt & Du Phan)",
         "icon": "icon-resize-full",
         "licenseInfo": "Apache Software License",
-        "url": "https://www.dataiku.com/community/plugins/info/model-drift.html",
+        "url": "https://www.dataiku.com/community/plugins/info/model-drift.html", //warning, update the webapp UI if you change
         "tags": ["Machine Learning"]
     }
 }

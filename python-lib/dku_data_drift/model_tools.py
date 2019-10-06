@@ -1,7 +1,7 @@
 # coding: utf-8
+import logging
 import numpy as np
 from sklearn.metrics import *
-import logging
 
 logger = logging.getLogger(__name__)
 

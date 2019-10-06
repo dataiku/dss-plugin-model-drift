@@ -1,61 +1,27 @@
-#error_message {
-    color : red;
-    font-size: 15px;
+html {
+    background: #f2f2f2;
 }
-
-
-#section-header{
-    font-size: 25px;
-    font-weight: bold;
-    padding-left: 17px;
+h4 {
+    margin-bottom: 16px !important;
 }
-
+.explanation {
+    margin-bottom: 24px;
+}
 #label-list{
     padding-left: 17px;
 }
-
-.col{
-    font-size: 15px;
-}
-.row{
-    font-size: 15px;
-}
-
-#fugacity-score-explain{
-    color: #50859F;
-    background: #E6EEF3;
-}
-
-#kde-explain{
-    color: #50859F;
-    background: #E6EEF3;
-}
-
-#drift-score-explain{
-    color: #50859F;
-    background: #E6EEF3;
-}
-
-#feat-imp-plot-explain{
-      color: #50859F;
-    background: #E6EEF3;
-}
-
 #drift-score{
     font-size: 50px;
-    font-weight: bold;
 }
-
- .panel-body  {
-    word-break: break-word;
-    word-wrap: break-word;
-}
-
 .tooltip {
-            position: relative;
-            font-size: 8px;
-            width:  auto;
-            height: auto;
-            pointer-events: none;
-            background-color: white;
-        }
+    position: relative;
+    font-size: 8px;
+    width:  auto;
+    height: auto;
+    pointer-events: none;
+    background-color: white;
+}
+.fatal-error {
+    white-space: pre-wrap;
+    text-align: left !important;
+}

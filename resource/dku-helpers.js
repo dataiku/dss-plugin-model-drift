@@ -1,9 +1,10 @@
 /*
 Helper function to query webapp backend with a default implementation for error handling
-v 1.0.1
+Assumes a dataiku object is defined
+v 1.5.0
 */
 
-const webappBackend = (function() {
+dataiku.webappBackend = (function() {
     function getUrl(path) {
         return dataiku.getWebAppBackendUrl(path);
     }
@@ -44,12 +45,14 @@ const webappBackend = (function() {
 })();
 
 
-const webappMessages = (function() {
+dataiku.webappMessages = (function() {
     function displayFatalError(err) {
         const errElt = $('<div class="fatal-error" style="margin: 30px auto; text-align: center; color: var(--error-red)"></div>')
         errElt.text(err);
         $('#error_message').html(errElt);
     }
-    
-    return Object.freeze({displayFatalError})
+    function clear() {
+        $('#error_message').html('');
+    }
+    return Object.freeze({displayFatalError, clear});
 })();
