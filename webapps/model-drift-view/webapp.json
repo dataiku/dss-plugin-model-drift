@@ -1,0 +1,19 @@
+{
+    "meta": {
+        "label": "Model drift analyzer",
+        "description": "Get insights on the applicability of a model by detecting when a new dataset differs from the one used for evaluation after training.",
+        "icon": "icon-anchor"
+    },
+    "baseType": "STANDARD",
+    "hasBackend": "true",
+    "standardWebAppLibraries": ["jquery", "dataiku", "font_awesome"],
+    "virtualWebAppAffinity": "PREFER_VIRTUAL",
+    "roles": [
+        {
+            "type": "SAVED_MODEL",
+            "targetParamsKey": "modelId",
+            "pathParamsKey": "versionId"
+        }
+    ],
+    "params":[]
+}
