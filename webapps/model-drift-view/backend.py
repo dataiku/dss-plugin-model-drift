@@ -19,12 +19,12 @@ def list_datasets():
 def get_drift_metrics():
     try:
         model_id = request.args.get('model_id')
-        model_version = request.args.get('model_version')
+        version_id = request.args.get('version_id')
         test_set = request.args.get('test_set')
         new_test_df = dataiku.Dataset(test_set).get_dataframe()
 
         model = dataiku.Model(model_id)
-        model_handler = get_model_handler(model, model_version=model_version)
+        model_handler = get_model_handler(model, version_id=version_id)
         model_accessor = ModelAccessor(model_handler)
 
         drifter = DriftAnalyzer(model_accessor)

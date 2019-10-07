@@ -1,11 +1,11 @@
 {
     "id": "model-drift",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "meta": {
         "label": "Model drift detection",
-        "description": "Detect when the new test set distribution differs from the one at training time",
+        "description": "Get insights on the applicability of a model by detecting when a new dataset differs from the one used for evaluation after training.",
         "author": "Dataiku (Léo Dreyfus-Schmidt & Du Phan)",
-        "icon": "icon-resize-full",
+        "icon": "icon-anchor",
         "licenseInfo": "Apache Software License",
         "url": "https://www.dataiku.com/community/plugins/info/model-drift.html", //warning, update the webapp UI if you change
         "tags": ["Machine Learning"]

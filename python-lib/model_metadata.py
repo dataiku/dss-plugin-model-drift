@@ -3,24 +3,15 @@ import os
 import json
 from dataiku.doctor.posttraining.model_information_handler import PredictionModelInformationHandler
 
-def get_saved_model_version_id(model, model_version=None):
-    model_def = model.get_definition()
-    if model_version is None:
-        model_version = model_def.get('activeVersion')
-    saved_model_version_id = 'S-{0}-{1}-{2}'.format(model_def.get('projectKey'), model_def.get('id'), model_version)
-    return saved_model_version_id
-
-def get_model_handler(model, model_version=None):
+def get_model_handler(model, version_id=None):
     my_data_dir = os.environ['DIP_HOME']
-    saved_model_version_id = get_saved_model_version_id(model, model_version)
-    return get_model_info_handler(saved_model_version_id)
+    saved_model_version_id = _get_saved_model_version_id(model, version_id)
+    return _get_model_info_handler(saved_model_version_id)
 
-def get_model_info_handler(saved_model_version_id):
+def _get_model_info_handler(saved_model_version_id):
     infos = saved_model_version_id.split("-")
-
     if len(infos) != 4 or infos[0] != "S":
         raise Exception("Invalid saved model id")
-
     pkey = infos[1]
     model_id = infos[2]
     version_id = infos[3]
@@ -42,3 +33,10 @@ def get_model_info_handler(saved_model_version_id):
         core_params = json.load(core_params_file)
 
     return PredictionModelInformationHandler(split_desc, core_params, version_folder, version_folder)
+
+def _get_saved_model_version_id(model, version_id=None):
+    model_def = model.get_definition()
+    if version_id is None:
+        version_id = model_def.get('activeVersion')
+    saved_model_version_id = 'S-{0}-{1}-{2}'.format(model_def.get('projectKey'), model_def.get('id'), version_id)
+    return saved_model_version_id

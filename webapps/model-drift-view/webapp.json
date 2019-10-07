@@ -1,20 +1,19 @@
 {
     "meta": {
         "label": "Model drift analyzer",
-        "description": "Detect when the new test set distribution differs from the one at training time",
-        "icon": "icon-resize-full"
+        "description": "Get insights on the applicability of a model by detecting when a new dataset differs from the one used for evaluation after training.",
+        "icon": "icon-anchor"
     },
     "baseType": "STANDARD",
     "hasBackend": "true",
-    "standardWebAppLibraries" : ["jquery", "dataiku", "font_awesome"],
-    "virtualWebAppAffinity" : "PREFER_VIRTUAL",
-    "roles":[
+    "standardWebAppLibraries": ["jquery", "dataiku", "font_awesome"],
+    "virtualWebAppAffinity": "PREFER_VIRTUAL",
+    "roles": [
         {
             "type": "SAVED_MODEL",
-            "targetParamsKey" : "idOfTheModel",
-            "pathParamsKey" : "idOfTheVersion"
+            "targetParamsKey": "modelId",
+            "pathParamsKey": "versionId"
         }
     ],
     "params":[]
-
 }

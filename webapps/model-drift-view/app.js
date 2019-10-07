@@ -1,6 +1,6 @@
 let webAppConfig = dataiku.getWebAppConfig();
-let modelId = webAppConfig['idOfTheModel'];
-let modelVersion = webAppConfig['idOfTheVersion'];
+let modelId = webAppConfig['modelId'];
+let versionId = webAppConfig['versionId'];
 
 dataiku.webappBackend.get('list-datasets')
     .then(data => {
@@ -11,56 +11,46 @@ dataiku.webappBackend.get('list-datasets')
     );
 
 $('#run-button').click(function() {
-    $('.empty-state').remove();
     dataiku.webappMessages.clear();
     runAnalysis($('#run-button'));
 });
 
 function runAnalysis($this) {
-    dataiku.webappBackend.get('get-drift-metrics', {'model_id': modelId, 'model_version': modelVersion, 'test_set': $("#dataset-selector").val()})
+    markRunning(true);
+    dataiku.webappBackend.get('get-drift-metrics', {'model_id': modelId, 'version_id': versionId, 'test_set': $("#dataset-selector").val()})
         .then(
             function(data) {
-                console.warn('done', data);
                 $('#drift-score').text(data['drift_accuracy']);
                 $('#error_message').html('');
-                let label_list = data['label_list'];
                 draw(data);
-                document.getElementById('info-panel').style.display = "block";
+                $('.result-state').show();
+                markRunning(false);
             }
         )
-        .catch(function(data) {
-                //$this.button('reset');
-                console.error('error :(', data)
-                dataiku.webappMessages.displayFatalError('Internal Server Error: ' + data.responseText);
-            }
-        );
-};
-
-
-function getMinX(data) {
-    return data.reduce((min, p) => p['drift_model'] < min ? p['drift_model'] : min, data[0]['drift_model']);
+        .catch(error => {
+            markRunning(false);
+            dataiku.webappMessages.displayFatalError(error);
+        });
 }
 
-function getMaxX(data) {
-    return data.reduce((max, p) => p['drift_model'] > max ? p['drift_model'] : max, data[0]['drift_model']);
-}
-
-function getMinY(data) {
-    return data.reduce((min, p) => p['original_model'] < min ? p['original_model'] : min, data[0]['original_model']);
-}
-
-function getMaxY(data) {
-    return data.reduce((max, p) => p['original_model'] > max ? p['original_model'] : max, data[0]['original_model']);
+function markRunning(running) {
+    if (running) {
+        $('.running-state').show();
+        $('.notrunning-state').hide();
+        $('.result-state').hide();
+    } else {
+        $('.running-state').hide();
+        $('.notrunning-state').show();
+    }
 }
 
 function draw(data) {
-    draw_fugacity(data['fugacity']);
-    console.warn(data);
-    draw_kde(data['kde'], data['stat_metrics']);
-    draw_feat_imp(data['feature_importance']);
+    drawFugacity(data['fugacity']);
+    drawKDE(data['kde'], data['stat_metrics']);
+    drawFeatureImportance(data['feature_importance']);
 }
 
-function draw_fugacity(data) {
+function drawFugacity(data) {
     $('#fugacity-score').html(json2table(data, 'table ml-table'));
 }
 
@@ -88,8 +78,7 @@ function json2table(json, classes) {
     return `<table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
-
-function draw_kde(data, data_stats) {
+function drawKDE(data, statMetrics) {
     let margin = {top: 30, right: 30, bottom: 30, left: 50};
     let width = 460 - margin.left - margin.right;
     let height = 400 - margin.top - margin.bottom;
@@ -103,17 +92,17 @@ function draw_kde(data, data_stats) {
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     // List of groups (here I have one group per column)
-    let label_list = Object.keys(data);
+    let labels = Object.keys(data);
 
     // add the options to the button
     d3.select("#label-list")
         .selectAll('myOptions')
-        .data(label_list)
+        .data(labels)
         .enter()
         .append('option')
         .text(d => d) // text showed in the menu
         .attr("value", d => d) // corresponding value returned by the button
-        .property("selected", d => d === label_list[1]);
+        .property("selected", d => d === labels[1]);
 
     // add the x Axis
     let x = d3.scaleLinear()
@@ -123,12 +112,12 @@ function draw_kde(data, data_stats) {
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
-    t_test = data_stats[label_list[1]]['t_test'];
-    power = data_stats[label_list[1]]['power'];
+    t_test = statMetrics[labels[1]]['t_test'];
+    power = statMetrics[labels[1]]['power'];
     $("#t-test-result").text(t_test);
 
-    let density1 = data[label_list[1]]['original'];
-    let density2 = data[label_list[1]]['new'];
+    let density1 = data[labels[1]]['original'];
+    let density2 = data[labels[1]]['new'];
 
     density1_array = density1.map(x=>x[1])
     density2_array = density2.map(x=>x[1])
@@ -193,15 +182,14 @@ function draw_kde(data, data_stats) {
     // A function that update the chart when slider is moved?
     function updateChart(selectedGroup) {
 
-        t_test = data_stats[label_list[1]]['t_test'];
-        power = data_stats[label_list[1]]['power'];
+        t_test = statMetrics[labels[1]]['t_test'];
+        power = statMetrics[labels[1]]['power'];
         $("#t-test").text('T-test p-value: ' + t_test);
         $("#power").text('Statistical power: '+ power);
 
         // recompute density estimation
-        //kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(20));
-        density1 =    data[selectedGroup]['original'];
-        density2 =    data[selectedGroup]['new'];
+        density1 = data[selectedGroup]['original'];
+        density2 = data[selectedGroup]['new'];
         // first and last value of array must be zero otherwise the color fill will mess up
         density1[0] = [0,0];
         density2[0] = [0,0];
@@ -241,8 +229,7 @@ function draw_kde(data, data_stats) {
     });
 }
 
-
-function draw_feat_imp(data) {
+function drawFeatureImportance(data) {
     //sort bars based on value
     data = data.sort(function (a, b) {
         return d3.descending(a['original_model'], b['original_model']);

@@ -13,7 +13,6 @@ from sklearn.neighbors import KernelDensity
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
 
-from model_metadata import get_saved_model_version_id, get_model_info_handler
 from preprocessing import  Preprocessor
 from model_accessor import ModelAccessor
 from model_tools import mroc_auc_score

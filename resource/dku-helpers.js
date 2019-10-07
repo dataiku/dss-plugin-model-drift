@@ -9,9 +9,9 @@ dataiku.webappBackend = (function() {
         return dataiku.getWebAppBackendUrl(path);
     }
 
-    function dkuDisplayError(error) {
-        alert('Backend error, check the logs.');
-    }
+    // function dkuDisplayError(error) {
+    //     alert('Backend error, check the logs.');
+    // }
 
     function get(path, args={}, displayErrors=true) {
         return fetch(getUrl(path) + '?' + $.param(args), {
@@ -22,9 +22,11 @@ dataiku.webappBackend = (function() {
             }
         })
         .then(response => {
+            console.warn('resp', response)
             if (response.status == 502) {
                 throw Error("Webapp backend not started");
             } else if (!response.ok) {
+                response.text().then(text => dataiku.webappMessages.displayFatalError(`${response.statusText} (HTTP ${response.status}):\n${text}`))
                 throw Error(`${response.statusText} (HTTP ${response.status})`);
             }
             try {
@@ -35,7 +37,7 @@ dataiku.webappBackend = (function() {
         })
         .catch(function(error) {
             if (displayErrors && error.message && !error.message.includes('not started')) { // little hack, backend not started should be handled elsewhere
-                dkuDisplayError(error);
+                dataiku.webappMessages.displayFatalError(error)
             }
             throw error;
         });
