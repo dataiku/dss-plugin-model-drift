@@ -38,10 +38,10 @@ class DriftAnalyzer:
         self.check()
 
     def check(self):
-        if not self._algorithm_is_supported(self._model_accessor.get_predictor()._clf):
+        clf = self._model_accessor.get_predictor()._clf
+        if not self._algorithm_is_supported(clf):
             raise ValueError(
-                '{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(
-                    clf.__module__))
+                '{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(clf.__module__))
 
     def train_drift_model(self, new_df):
         """
