@@ -12,7 +12,9 @@ from statsmodels.stats.power import TTestIndPower
 from sklearn.neighbors import KernelDensity
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
-
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
+from sklearn.tree import DecisionTreeClassifier 
+from dataiku.doctor.prediction.dku_xgboost import DkuXGBClassifier # good idea ?
 from preprocessing import  Preprocessor
 from model_accessor import ModelAccessor
 from model_tools import mroc_auc_score
@@ -22,6 +24,7 @@ logger = logging.getLogger(__name__)
 ORIGIN_COLUMN = '__dku_row_origin__' # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
 FROM_ORIGINAL = 'original'
 FROM_NEW = 'new'
+ACCEPTED_ALGORITHMS = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier, DkuXGBClassifier]
 
 
 class DriftAnalyzer:
@@ -31,11 +34,17 @@ class DriftAnalyzer:
         self._original_test_df = model_accessor.get_original_test_df()
         self._test_X = None
         self._test_Y = None
+        self.check()
 
     def check(self):
-        #if self._model_accessor is None:
-        #    raise ValueError('ModelAccessor object is not specified.')
-        pass
+        clf = self._model_accessor.get_predictor()._clf
+        found_algorithm = False
+        for algorithm in ACCEPTED_ALGORITHMS:
+            if isinstance(clf, algorithm):
+                found = True
+                break
+        if not found_algorithm:
+            raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(clf.__module__))
 
     def train_drift_model(self, new_df):
         """
