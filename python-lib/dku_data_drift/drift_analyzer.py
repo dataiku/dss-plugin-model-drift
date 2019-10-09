@@ -4,7 +4,6 @@ import os
 import json
 import logging
 import math
-
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -13,18 +12,20 @@ from sklearn.neighbors import KernelDensity
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
-from sklearn.tree import DecisionTreeClassifier 
-from dataiku.doctor.prediction.dku_xgboost import DkuXGBClassifier # good idea ?
-from preprocessing import  Preprocessor
+from sklearn.tree import DecisionTreeClassifier
+from dataiku.doctor.prediction.dku_xgboost import DkuXGBClassifier  # good idea ?
+from preprocessing import Preprocessor
 from model_accessor import ModelAccessor
 from model_tools import mroc_auc_score
 
 logger = logging.getLogger(__name__)
 
-ORIGIN_COLUMN = '__dku_row_origin__' # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
+ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
 FROM_ORIGINAL = 'original'
 FROM_NEW = 'new'
-ACCEPTED_ALGORITHMS = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier, DkuXGBClassifier]
+
+ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier,
+                                       DecisionTreeClassifier, DkuXGBClassifier]
 
 
 class DriftAnalyzer:
@@ -37,14 +38,10 @@ class DriftAnalyzer:
         self.check()
 
     def check(self):
-        clf = self._model_accessor.get_predictor()._clf
-        found_algorithm = False
-        for algorithm in ACCEPTED_ALGORITHMS:
-            if isinstance(clf, algorithm):
-                found = True
-                break
-        if not found_algorithm:
-            raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(clf.__module__))
+        if not self._algorithm_is_supported(self._model_accessor.get_predictor()._clf):
+            raise ValueError(
+                '{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(
+                    clf.__module__))
 
     def train_drift_model(self, new_df):
         """
@@ -60,7 +57,7 @@ class DriftAnalyzer:
 
         train_X = train.drop(ORIGIN_COLUMN, axis=1)
         train_Y = np.array(train[ORIGIN_COLUMN])
-        self._test_X = test.drop(ORIGIN_COLUMN, axis=1) # we will use them later when compute metrics
+        self._test_X = test.drop(ORIGIN_COLUMN, axis=1)  # we will use them later when compute metrics
         self._test_Y = np.array(test[ORIGIN_COLUMN])
 
         clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
@@ -83,9 +80,10 @@ class DriftAnalyzer:
                 predictions_by_class[label] = {FROM_ORIGINAL: original_proba, FROM_NEW: new_proba}
         kde_dict = self._get_kde(predictions_by_class)
         fugacity_metrics = self._get_fugacity(prediction_dict)
-        stat_metrics = self._get_stat_test3(kde_dict)
+        stat_metrics = self._get_stat_test(kde_dict)
         label_list = [label for label in fugacity_metrics[0].keys() if label != 'source']
-        return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy, 'kde': kde_dict, 'stat_metrics':stat_metrics, 'fugacity': fugacity_metrics, 'label_list': label_list}
+        return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy, 'kde': kde_dict,
+                'stat_metrics': stat_metrics, 'fugacity': fugacity_metrics, 'label_list': label_list}
 
     def _prepare_data_for_drift_model(self, new_test_df):
         target = self._model_accessor.get_target_variable()
@@ -100,7 +98,8 @@ class DriftAnalyzer:
 
         logger.info("Rebalancing data:")
         number_of_rows = min(original_df.shape[0], new_df.shape[0])
-        logger.info(" - original test dataset had %s rows, new dataframe has %s. Selecting %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
+        logger.info(" - original test dataset had %s rows, new dataframe has %s. Selecting %s for each." % (
+        original_df.shape[0], new_df.shape[0], number_of_rows))
 
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
         selected_features = [ORIGIN_COLUMN] + self._model_accessor.get_selected_features()
@@ -134,23 +133,24 @@ class DriftAnalyzer:
         for feature_name, feat_importance in zip(drift_features, drift_clf.feature_importances_):
             feature_importance.append({
                 'feature': feature_name,
-                'importance': 100*feat_importance/sum(drift_clf.feature_importances_)
+                'importance': 100 * feat_importance / sum(drift_clf.feature_importances_)
             })
 
-        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)#.drop('importance', axis=1)
+        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(
+            drop=True)  # .drop('importance', axis=1)
         return dfx.rename_axis('rank').reset_index().set_index('feature')
 
-    def _get_stat_test3(self, kde_dict, alpha=0.05):
+    def _get_stat_test(self, kde_dict, alpha=0.05):
         power_analysis = TTestIndPower()
         stat_test_dict = {}
         for label in kde_dict.keys():
             kde_original = [x[1] for x in kde_dict.get(label).get(FROM_ORIGINAL)]
-            kde_new = [x [1] for x in kde_dict.get(label).get(FROM_NEW)]
+            kde_new = [x[1] for x in kde_dict.get(label).get(FROM_NEW)]
             # this effect size has an equal variance assumption (?)
-            effect_size = np.abs((np.mean(kde_original) - np.mean(kde_new)))/np.std(kde_original)
+            effect_size = np.abs((np.mean(kde_original) - np.mean(kde_new))) / np.std(kde_original)
             power = power_analysis.power(effect_size=effect_size, nobs1=len(kde_original), alpha=0.05)
             t_test = stats.ttest_ind(kde_original, kde_new, equal_var=False)[-1]
-            stat_test_dict[label] = {'t_test': round(t_test,4), 'power': round(power,4)}
+            stat_test_dict[label] = {'t_test': round(t_test, 4), 'power': round(power, 4)}
 
         return stat_test_dict
 
@@ -165,9 +165,12 @@ class DriftAnalyzer:
             if np.isnan(drift_feat_rank):
                 logger.warn('Feature {} does not exist in the orignal test set.'.format(feature))
             elif np.isnan(topn_original_feature.get(feature, 0)):
-                logger.warn('No original_model.') #TODO no idea what this means, did not think, just added this list to avoid nan here
+                logger.warn(
+                    'No original_model.')  # TODO no idea what this means, did not think, just added this list to avoid nan here
             else:
-                feature_importance_metrics.append({'original_model': topn_original_feature.get(feature, 0), 'drift_model': drift_feat_rank, 'feature': feature})
+                feature_importance_metrics.append(
+                    {'original_model': topn_original_feature.get(feature, 0), 'drift_model': drift_feat_rank,
+                     'feature': feature})
         return feature_importance_metrics
 
     def _get_drift_auc(self, drift_clf):
@@ -179,7 +182,7 @@ class DriftAnalyzer:
     def _get_drift_accuracy(self, drift_clf):
         predicted_Y = drift_clf.predict(self._test_X)
         test_Y = pd.Series(self._test_Y)
-        drift_accuracy = round(accuracy_score(test_Y, predicted_Y),2)
+        drift_accuracy = round(accuracy_score(test_Y, predicted_Y), 2)
         return drift_accuracy
 
     def _get_predictions(self, new_df, limit=10000):
@@ -200,8 +203,9 @@ class DriftAnalyzer:
         original_prediction_df = prediction_dict.get(FROM_ORIGINAL)
         new_prediciton_df = prediction_dict.get(FROM_NEW)
 
-        original_fugacity = (100*original_prediction_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
-        new_fugacity = (100*new_prediciton_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
+        original_fugacity = (100 * original_prediction_df['prediction'].value_counts(normalize=True)).round(
+            decimals=2).to_dict()
+        new_fugacity = (100 * new_prediciton_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
         fugacity = []
         for key in original_fugacity.keys():
             temp_fugacity = {}
@@ -211,3 +215,9 @@ class DriftAnalyzer:
             temp_fugacity['New test set'] = new_fugacity.pop(key)
             fugacity.append(temp_fugacity)
         return fugacity
+
+    def _algorithm_is_supported(self, algo):
+        for algorithm in ALGORITHMS_WITH_VARIABLE_IMPORTANCE:
+            if isinstance(algo, algorithm):
+                return True
+        return False
