@@ -12,7 +12,7 @@ class ModelAccessor:
     def check(self):
         if self.model_handler is None:
             raise ValueError('model_handler object is not specified')
-
+            
     def get_target_variable(self):
         return self.model_handler.get_target_variable()
 
