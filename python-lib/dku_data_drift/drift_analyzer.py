@@ -9,10 +9,9 @@ from sklearn.neighbors import KernelDensity
 from sklearn.metrics import roc_auc_score, accuracy_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 from sklearn.tree import DecisionTreeClassifier
-#from dataiku.doctor.prediction.dku_xgboost import DkuXGBClassifier
 
 from preprocessing import Preprocessor
-from dataframe_helpers import nothing_to_do, not_enough_data
+from dataframe_helpers import not_enough_data
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +34,8 @@ class DriftAnalyzer:
         self.check()
 
     def check(self):
-        clf = self._model_accessor.get_predictor()._clf
-        if not self._algorithm_is_supported(clf):
+        predictor = self._model_accessor.get_predictor()
+        if not self._algorithm_is_supported(predictor):
             raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(clf.__module__))
 
     def train_drift_model(self, new_test_df):
@@ -222,8 +221,11 @@ class DriftAnalyzer:
             fugacity.append(temp_fugacity)
         return fugacity
 
-    def _algorithm_is_supported(self, algo):
+    def _algorithm_is_supported(self, predictor):
+        algo = predictor._clf
         for algorithm in ALGORITHMS_WITH_VARIABLE_IMPORTANCE:
             if isinstance(algo, algorithm):
+                return True
+            elif predictor.params.modeling_params.get('algorithm') == 'XGBOOST_CLASSIFICATION':
                 return True
         return False
