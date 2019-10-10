@@ -1,6 +1,7 @@
 import traceback
 import logging
 from flask import request
+import json
 import dataiku
 from dku_data_drift import DriftAnalyzer, ModelAccessor
 from model_metadata import get_model_handler

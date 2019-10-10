@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
-import os
-import json
 import logging
 import math
 import numpy as np
@@ -9,23 +6,22 @@ import pandas as pd
 from scipy import stats
 from statsmodels.stats.power import TTestIndPower
 from sklearn.neighbors import KernelDensity
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 from sklearn.tree import DecisionTreeClassifier
-from dataiku.doctor.prediction.dku_xgboost import DkuXGBClassifier  # good idea ?
+#from dataiku.doctor.prediction.dku_xgboost import DkuXGBClassifier
+
 from preprocessing import Preprocessor
-from model_accessor import ModelAccessor
-from model_tools import mroc_auc_score
+from dataframe_helpers import nothing_to_do, not_enough_data
 
 logger = logging.getLogger(__name__)
 
 ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
 FROM_ORIGINAL = 'original'
 FROM_NEW = 'new'
-
+MIN_NUM_ROWS = 10 # heuristic choice
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier,
-                                       DecisionTreeClassifier, DkuXGBClassifier]
+                                       DecisionTreeClassifier]
 
 
 class DriftAnalyzer:
@@ -33,6 +29,7 @@ class DriftAnalyzer:
     def __init__(self, model_accessor):
         self._model_accessor = model_accessor
         self._original_test_df = model_accessor.get_original_test_df()
+        self._new_test_df = None
         self._test_X = None
         self._test_Y = None
         self.check()
@@ -40,10 +37,9 @@ class DriftAnalyzer:
     def check(self):
         clf = self._model_accessor.get_predictor()._clf
         if not self._algorithm_is_supported(clf):
-            raise ValueError(
-                '{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(clf.__module__))
+            raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(clf.__module__))
 
-    def train_drift_model(self, new_df):
+    def train_drift_model(self, new_test_df):
         """
         Trains a classifier that attempts to discriminate between rows from the provided dataframe and
         rows from the dataset originally used to evaluate the model
@@ -51,7 +47,12 @@ class DriftAnalyzer:
         Returns (columns, classifier)
         """
         logger.info("Preparing the drift model...")
-        df = self._prepare_data_for_drift_model(new_df)
+
+        if not_enough_data(new_test_df, min_len=MIN_NUM_ROWS):
+            logger.warning('The new test set has less than {} rows, not enough to compute drift score'.format(MIN_NUM_ROWS))
+            return None, None
+
+        df = self._prepare_data_for_drift_model(new_test_df)
         preprocessor = Preprocessor(df, target=ORIGIN_COLUMN)
         train, test = preprocessor.get_processed_train_test()
 
@@ -59,18 +60,23 @@ class DriftAnalyzer:
         train_Y = np.array(train[ORIGIN_COLUMN])
         self._test_X = test.drop(ORIGIN_COLUMN, axis=1)  # we will use them later when compute metrics
         self._test_Y = np.array(test[ORIGIN_COLUMN])
+        self._new_test_df = new_test_df
 
         clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
         logger.info("Fitting the drift model...")
         clf.fit(train_X, train_Y)
         return train_X.columns, clf
 
-    def compute_drift_metrics(self, new_df, drift_features, drift_clf):
+    def compute_drift_metrics(self, drift_features, drift_clf):
+
+        if drift_features is None or drift_clf is None:
+            logger.warning('drift_features and drift_clf must be defined')
+            return {}
+
         logger.info("Computing drift metrics ...")
         feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, top_n=50)
-        drift_auc = self._get_drift_auc(drift_clf)
         drift_accuracy = self._get_drift_accuracy(drift_clf)
-        prediction_dict = self._get_predictions(new_df, limit=10000)
+        prediction_dict = self._get_predictions(limit=10000)
 
         predictions_by_class = {}
         for label in prediction_dict.get(FROM_ORIGINAL).columns:
@@ -98,10 +104,10 @@ class DriftAnalyzer:
 
         logger.info("Rebalancing data:")
         number_of_rows = min(original_df.shape[0], new_df.shape[0])
-        logger.info(" - original test dataset had %s rows, new dataframe has %s. Selecting %s for each." % (
-        original_df.shape[0], new_df.shape[0], number_of_rows))
+        logger.info(" - original test dataset had %s rows, new dataframe has %s. Selecting %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
 
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
+
         selected_features = [ORIGIN_COLUMN] + self._model_accessor.get_selected_features()
         return df.loc[:, selected_features]
 
@@ -173,24 +179,18 @@ class DriftAnalyzer:
                      'feature': feature})
         return feature_importance_metrics
 
-    def _get_drift_auc(self, drift_clf):
-        probas = drift_clf.predict_proba(self._test_X)
-        test_Y_ser = pd.Series(self._test_Y)
-        auc_score = mroc_auc_score(test_Y_ser, probas)
-        return auc_score
-
     def _get_drift_accuracy(self, drift_clf):
         predicted_Y = drift_clf.predict(self._test_X)
         test_Y = pd.Series(self._test_Y)
         drift_accuracy = round(accuracy_score(test_Y, predicted_Y), 2)
         return drift_accuracy
 
-    def _get_predictions(self, new_df, limit=10000):
+    def _get_predictions(self, limit=10000):
         """
         The result of model_accessor.predict() is a dataframe prediction|proba_0|proba_1|...
         """
         original_prediction_df = self._model_accessor.predict(self._original_test_df[:limit])
-        new_prediciton_df = self._model_accessor.predict(new_df[:limit])
+        new_prediciton_df = self._model_accessor.predict(self._new_test_df[:limit])
         proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col]
 
         # move to % scale, it plays nicer with d3 ...
