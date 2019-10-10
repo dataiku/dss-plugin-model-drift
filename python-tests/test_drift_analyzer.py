@@ -10,6 +10,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
+import pytest
 ## Add stuff to the path to enable exec outside of DSS
 plugin_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(plugin_root, 'python-lib'))
@@ -96,7 +97,6 @@ class TestDriftAnalyzer:
         self.model_accessor = ModelAccessor(self.model_handler)
         self.drifter = DriftAnalyzer(self.model_accessor)
 
-
     def test_empty_set(self):
         _, feature_names, _ = load_data()
         new_test_df = pd.DataFrame(columns=feature_names)
@@ -116,6 +116,15 @@ class TestDriftAnalyzer:
         assert drift_features is None
         assert drift_clf is None
         assert result_dict == {}
+
+    def test_missing_feature_set(self):
+        df, feature_names, _ = load_data()
+        _, new_test_df = train_test_split(df, test_size=TEST_RATIO, random_state=RANDOM_SEED)
+        new_test_df = new_test_df.drop(feature_names[0], 1)
+
+        with pytest.raises(Exception) as e_info:
+            drift_features, drift_clf = self.drifter.train_drift_model(new_test_df)
+            result_dict = self.drifter.compute_drift_metrics(drift_features, drift_clf)
 
     def test_identical_set(self):
         df, _, _ = load_data()
@@ -157,10 +166,6 @@ class TestDriftAnalyzer:
         assert drift_accuracy == 1 # no drift, model can not distinguish, accuracy is 0.5
         assert np.array_equal(prediction_distribution_original_test_set, [24.44, 40.0, 35.56])
         assert np.array_equal(prediction_distribution_new_test_set, [22.22, 2.22, 75.56])
-
-
-
-
 
 
 

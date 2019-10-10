@@ -109,6 +109,12 @@ class DriftAnalyzer:
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
 
         selected_features = [ORIGIN_COLUMN] + self._model_accessor.get_selected_features()
+
+        missing_features = set(selected_features) - set(new_df.columns)
+
+        if len(missing_features) > 0:
+            raise ValueError('Missing columns in the new test set: {}'.format(','.join(list(missing_features))))
+
         return df.loc[:, selected_features]
 
     def _get_kde(self, predictions):
@@ -171,12 +177,12 @@ class DriftAnalyzer:
             if np.isnan(drift_feat_rank):
                 logger.warn('Feature {} does not exist in the orignal test set.'.format(feature))
             elif np.isnan(topn_original_feature.get(feature, 0)):
-                logger.warn(
-                    'No original_model.')  # TODO no idea what this means, did not think, just added this list to avoid nan here
+                logger.warn('No original_model.')  # TODO no idea what this means, did not think, just added this list to avoid nan here
             else:
                 feature_importance_metrics.append(
                     {'original_model': topn_original_feature.get(feature, 0), 'drift_model': drift_feat_rank,
-                     'feature': feature})
+                     'feature': feature}
+                )
         return feature_importance_metrics
 
     def _get_drift_accuracy(self, drift_clf):
