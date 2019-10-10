@@ -30,7 +30,7 @@ def get_drift_metrics():
 
         drifter = DriftAnalyzer(model_accessor)
         drift_features, drift_clf = drifter.train_drift_model(new_test_df)
-        return json.dumps(drifter.compute_drift_metrics(new_test_df, drift_features, drift_clf), allow_nan=False)
+        return json.dumps(drifter.compute_drift_metrics(drift_features, drift_clf), allow_nan=False)
     except:
         logger.error(traceback.format_exc())
         return traceback.format_exc(), 500
