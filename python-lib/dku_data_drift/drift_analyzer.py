@@ -112,7 +112,7 @@ class DriftAnalyzer:
         missing_features = set(selected_features) - set(new_df.columns)
 
         if len(missing_features) > 0:
-            raise ValueError('Missing columns in the new test set: {}'.format(','.join(list(missing_features))))
+            raise ValueError('Missing columns in the new test set: {}'.format(', '.join(list(missing_features))))
 
         return df.loc[:, selected_features]
 
@@ -208,16 +208,15 @@ class DriftAnalyzer:
         original_prediction_df = prediction_dict.get(FROM_ORIGINAL)
         new_prediciton_df = prediction_dict.get(FROM_NEW)
 
-        original_fugacity = (100 * original_prediction_df['prediction'].value_counts(normalize=True)).round(
-            decimals=2).to_dict()
+        original_fugacity = (100 * original_prediction_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
         new_fugacity = (100 * new_prediciton_df['prediction'].value_counts(normalize=True)).round(decimals=2).to_dict()
         fugacity = []
         for key in original_fugacity.keys():
             temp_fugacity = {}
             new_key = "Predicted {} (%)".format(key)
             temp_fugacity[' Score'] = new_key
-            temp_fugacity['Original test set'] = original_fugacity.pop(key)
-            temp_fugacity['New test set'] = new_fugacity.pop(key)
+            temp_fugacity['Original test set'] = original_fugacity.get(key, 0.)
+            temp_fugacity['New test set'] = new_fugacity.get(key, 0.)
             fugacity.append(temp_fugacity)
         return fugacity
 

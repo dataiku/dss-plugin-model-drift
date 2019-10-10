@@ -79,6 +79,9 @@ function json2table(json, classes) {
 }
 
 function drawKDE(data, statMetrics) {
+    d3.select("#kde-chart").select("svg").remove();
+    d3.select("#label-list").selectAll("option").remove();
+    
     let margin = {top: 30, right: 30, bottom: 30, left: 50};
     let width = 460 - margin.left - margin.right;
     let height = 400 - margin.top - margin.bottom;
@@ -99,7 +102,7 @@ function drawKDE(data, statMetrics) {
         .selectAll('myOptions')
         .data(labels)
         .enter()
-        .append('option')
+        .append("option")
         .text(d => d) // text showed in the menu
         .attr("value", d => d) // corresponding value returned by the button
         .property("selected", d => d === labels[1]);
@@ -230,6 +233,7 @@ function drawKDE(data, statMetrics) {
 }
 
 function drawFeatureImportance(data) {
+    d3.select("#feat-imp-plot").select("svg").remove();
     //sort bars based on value
     data = data.sort(function (a, b) {
         return d3.descending(a['original_model'], b['original_model']);
