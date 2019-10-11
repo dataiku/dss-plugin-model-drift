@@ -15,12 +15,27 @@ $('#run-button').click(function() {
     runAnalysis($('#run-button'));
 });
 
+
+function changeInputColor(input, value){
+        $(input).removeClass();
+        if (value < 0.1){
+            $(input).addClass('low-risk');
+        }
+        else if(value >= 0.1 && value <= 0.5){
+            $(input).addClass('medium-risk');
+        }
+        else{
+            $(input).addClass('high-risk');
+        }
+    }
+
 function runAnalysis($this) {
     markRunning(true);
     dataiku.webappBackend.get('get-drift-metrics', {'model_id': modelId, 'version_id': versionId, 'test_set': $("#dataset-selector").val()})
         .then(
             function(data) {
                 $('#drift-score').text(data['drift_accuracy']);
+                changeInputColor('#drift-score', data['drift_accuracy']);
                 $('#error_message').html('');
                 draw(data);
                 $('.result-state').show();

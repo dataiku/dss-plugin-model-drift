@@ -25,3 +25,15 @@ h4 {
     white-space: pre-wrap;
     text-align: left !important;
 }
+
+.low-risk{
+    color: green;
+}
+
+.medium-risk{
+    color: orange;
+}
+
+.high-risk{
+    color: red;
+}
