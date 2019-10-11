@@ -184,11 +184,15 @@ class DriftAnalyzer:
                 )
         return feature_importance_metrics
 
+    
+    def _exponential_function(self, score): 
+        return round(np.exp(1 - 1/(np.power(score, 2.5))),2)
+    
     def _get_drift_accuracy(self, drift_clf):
         predicted_Y = drift_clf.predict(self._test_X)
         test_Y = pd.Series(self._test_Y)
-        drift_accuracy = round(accuracy_score(test_Y, predicted_Y), 2)
-        return drift_accuracy
+        drift_accuracy = accuracy_score(test_Y, predicted_Y)
+        return self._exponential_function(drift_accuracy) # make the score looks more "logic" from the user point of view
 
     def _get_predictions(self, limit=10000):
         """
