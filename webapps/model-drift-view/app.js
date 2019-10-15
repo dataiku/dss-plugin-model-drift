@@ -304,7 +304,7 @@ function drawFeatureImportance(data) {
     // Add X axis label:	 
       svg.append("text")	
           .attr("text-anchor", "end")	
-          .attr("x", width/2 + margin.left + 50)	
+          .attr("x", width/2 + margin.left + 20)
           .attr("y", height + margin.top + 20)	
           .attr("font-size", 12)	
           .text("Feature drift importance (%)");	
