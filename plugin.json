@@ -2,7 +2,7 @@
     "id": "model-drift",
     "version": "1.0.0",
     "meta": {
-        "label": "Model drift detection",
+        "label": "Model drift monitoring",
         "description": "Get insights on the applicability of a model by detecting when a new dataset differs from the one used for evaluation after training.",
         "author": "Dataiku (Léo Dreyfus-Schmidt & Du Phan)",
         "icon": "icon-anchor",

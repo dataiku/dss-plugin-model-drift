@@ -1,2 +1,2 @@
 # dss-plugin-model-drift
-Model drift detection
+Model drift monitoring
