@@ -3,8 +3,6 @@ import logging
 import math
 import numpy as np
 import pandas as pd
-from scipy import stats
-from statsmodels.stats.power import TTestIndPower
 from sklearn.neighbors import KernelDensity
 from sklearn.metrics import roc_auc_score, accuracy_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
