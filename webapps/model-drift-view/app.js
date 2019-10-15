@@ -142,7 +142,7 @@ function drawKDE(data) {
     // first and last value of array must be zero otherwise the color fill will mess up
     density1[0] = [0,0];
     density2[0] = [0,0];
-    density1[density1.length - 1] = [100,0];
+    density1[density1.length - 1] = [100, 0];
     density2[density2.length - 1] = [100, 0];
 
     // add the y Axis
@@ -186,8 +186,8 @@ function drawKDE(data) {
     // Handmade legend
     svg.append("circle").attr("cx",280).attr("cy",10).attr("r", 6).style("fill", "#2b67ff")
     svg.append("circle").attr("cx",280).attr("cy",40).attr("r", 6).style("fill", "#ff832b")
-    svg.append("text").attr("x", 300).attr("y", 10).text("Original set").style("font-size", "15px").attr("alignment-baseline","middle")
-    svg.append("text").attr("x", 300).attr("y", 40).text("New set").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", 300).attr("y", 10).text("Test dataset").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", 300).attr("y", 40).text("Input dataset").style("font-size", "15px").attr("alignment-baseline","middle")
     // Add X axis label:
     svg.append("text")
         .attr("text-anchor", "end")
@@ -205,7 +205,7 @@ function drawKDE(data) {
         // first and last value of array must be zero otherwise the color fill will mess up
         density1[0] = [0,0];
         density2[0] = [0,0];
-        density1[density1.length - 1] = [100,0];
+        density1[density1.length - 1] = [100, 0];
         density2[density2.length - 1] = [100, 0];
         density1_array = density1.map(x=>x[1])
         density2_array = density2.map(x=>x[1])
@@ -251,37 +251,37 @@ function getMaxY(data) {
 
 function drawFeatureImportance(data) {
     d3.select("#feat-imp-plot").select("svg").remove();
-    
+
     var values = Object.keys(data).map(function(key){
         return data[key];
     })
-    
+
     let maxX = getMaxX(values);
-    let maxY = getMaxY(values); 
+    let maxY = getMaxY(values);
     let margin = {top: 10, right: 30, bottom: 30, left: 60};
     let width = 460 - margin.left - margin.right;
     let height = 400 - margin.top - margin.bottom;
-    
+
     let svg = d3.select("#feat-imp-plot").append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform","translate(" + margin.left + "," + margin.top + ")");
-    
+
     let x = d3.scaleLinear()
         .domain([0, maxX])
         .range([ 0, width]);
-    
+
     svg.append("g")
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
-    
+
     let y = d3.scaleLinear()
         .domain([0, maxY])
         .range([height, 0]);
-    
+
     svg.append("g").call(d3.axisLeft(y));
-    
+
     let tooltip = d3.select("#feat-imp-plot")
         .append("div")
         .style("opacity", 0)
@@ -290,9 +290,9 @@ function drawFeatureImportance(data) {
         .style("border", "solid")
         .style("border-width", "1px")
         .style("border-radius", "5px")
-        .style("padding", "10px") 
+        .style("padding", "10px")
         .style("font-size", "20px")
-    
+
     let tipMouseover = function(d) {
         var html  = d["feature"];
         tooltip.html(html)
@@ -300,37 +300,37 @@ function drawFeatureImportance(data) {
             .style("top", d  + "px")
             .transition()
             .duration(200) // ms
-            .style("opacity", .9) 
+            .style("opacity", .9)
     };
-    
-    // Add X axis label:	 
-      svg.append("text")	
-          .attr("text-anchor", "end")	
-          .attr("x", width/2 + margin.left + 20)	
-          .attr("y", height + margin.top + 17)	
-          .attr("font-size", 12)	
-          .text("Feature drift importance (%)");	
 
-      // Y axis label:	
-      svg.append("text")	
-          .attr("text-anchor", "end")	
-          .attr("transform", "rotate(-90)")	
-          .attr("y", - margin.left + 20)	
-          .attr("x", - margin.top - height/2 + 120)	
-          .attr("font-size", 12)	
+    // Add X axis label:
+      svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", width/2 + margin.left + 20)
+          .attr("y", height + margin.top + 17)
+          .attr("font-size", 12)
+          .text("Drift model feature importance (%)");
+
+      // Y axis label:
+      svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-90)")
+          .attr("y", - margin.left + 20)
+          .attr("x", - margin.top - height/2 + 120)
+          .attr("font-size", 12)
           .text("Original model feature importance (%)");
-    
-      // tooltip mouseout event handler	
-      let tipMouseout = function(d) {	
-          tooltip.transition()	
-              .duration(300) // ms	
-              .style("opacity", 0); // don't care about position!	
-      };	
-    
-    // Add dots	
-      svg.append('g')	
-        .selectAll("dot")	
-        .data(values)	
+
+      // tooltip mouseout event handler
+      let tipMouseout = function(d) {
+          tooltip.transition()
+              .duration(300) // ms
+              .style("opacity", 0); // don't care about position!
+      };
+
+    // Add dots
+      svg.append('g')
+        .selectAll("dot")
+        .data(values)
         .enter()
         .append("circle")
         .attr("cx", function (d) { return x(d['drift_model']); } )
