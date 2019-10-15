@@ -98,7 +98,7 @@ function json2table(json, classes) {
 function drawKDE(data) {
     d3.select("#kde-chart").select("svg").remove();
     d3.select("#label-list").selectAll("option").remove();
-
+    
     let margin = {top: 30, right: 30, bottom: 30, left: 50};
     let width = 460 - margin.left - margin.right;
     let height = 400 - margin.top - margin.bottom;
@@ -113,6 +113,7 @@ function drawKDE(data) {
 
     // List of groups (here I have one group per column)
     let labels = Object.keys(data);
+    console.warn('OPTION: ',data)
     // add the options to the button
     d3.select("#label-list")
         .selectAll('myOptions')
@@ -250,7 +251,7 @@ function getMaxY(data) {
 function drawFeatureImportance(data) {
     d3.select("#feat-imp-plot").select("svg").remove();
     
-    let values = Object.keys(data).map(function(key){
+    var values = Object.keys(data).map(function(key){
         return data[key];
     })
     
@@ -292,7 +293,7 @@ function drawFeatureImportance(data) {
         .style("font-size", "20px")
     
     let tipMouseover = function(d) {
-        let html  = d["feature"];
+        var html  = d["feature"];
         tooltip.html(html)
             .style("left", d + "px")
             .style("top", d  + "px")
@@ -304,8 +305,8 @@ function drawFeatureImportance(data) {
     // Add X axis label:	 
       svg.append("text")	
           .attr("text-anchor", "end")	
-          .attr("x", width/2 + margin.left + 20)
-          .attr("y", height + margin.top + 20)	
+          .attr("x", width/2 + margin.left + 20)	
+          .attr("y", height + margin.top + 17)	
           .attr("font-size", 12)	
           .text("Feature drift importance (%)");	
 

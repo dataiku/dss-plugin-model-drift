@@ -1,3 +1,4 @@
+import numpy as np
 import traceback
 import logging
 from flask import request
@@ -7,6 +8,10 @@ from dku_data_drift import DriftAnalyzer, ModelAccessor
 from model_metadata import get_model_handler
 logger = logging.getLogger(__name__)
 
+
+def convert(o):
+    if isinstance(o, np.int64): return int(o)  
+    raise TypeError
 
 @app.route('/list-datasets')
 def list_datasets():
@@ -30,7 +35,7 @@ def get_drift_metrics():
 
         drifter = DriftAnalyzer(model_accessor)
         drift_features, drift_clf = drifter.train_drift_model(new_test_df)
-        return json.dumps(drifter.compute_drift_metrics(drift_features, drift_clf), allow_nan=False)
+        return json.dumps(drifter.compute_drift_metrics(drift_features, drift_clf), allow_nan=False, default=convert)
     except:
         logger.error(traceback.format_exc())
         return traceback.format_exc(), 500
