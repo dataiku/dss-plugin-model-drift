@@ -199,8 +199,8 @@ class DriftAnalyzer:
             temp_fugacity = {}
             new_key = "Predicted {} (%)".format(key)
             temp_fugacity[' Score'] = new_key
-            temp_fugacity['Original dataset'] = original_fugacity.get(key, 0.)
-            temp_fugacity['Selected dataset'] = new_fugacity.get(key, 0.)
+            temp_fugacity['Test dataset'] = original_fugacity.get(key, 0.)
+            temp_fugacity['Input dataset'] = new_fugacity.get(key, 0.)
             fugacity.append(temp_fugacity)
         return fugacity
 
