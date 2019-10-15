@@ -13,6 +13,9 @@ h3 {
 #drift-score{
     font-size: 50px;
 }
+.ml-table {
+    width: max-content;
+}
 .tooltip {
     position: relative;
     font-size: 8px;

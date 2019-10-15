@@ -19,15 +19,15 @@ function changeInputColor(input, value){
         $(input).removeClass();
         if (value < 0.1){
             $(input).addClass('low-risk');
-            $('#drift-explanation').html('<b>Lower is better.</b> This score between 0 and 1 measures the discrepancy between the test dataset used to orginally evaluate the model and your input dataset. See the documentation for details. <br><br>Here there is a <b>low risk of drift</b>.')
+            $('#drift-explanation').append('<b>low data drift</b>.');
         }
         else if(value >= 0.1 && value <= 0.5){
             $(input).addClass('medium-risk');
-            $('#drift-explanation').html('<b>Lower is better.</b> This score between 0 and 1 measures the discrepancy between the test dataset used to orginally evaluate the model and your input dataset. See the documentation for details. <br><br>Here there is a <b>medium risk of drift</b>.')
+            $('#drift-explanation').append('a <b>medium risk of drift</b>.');
         }
         else{
             $(input).addClass('high-risk');
-            $('#drift-explanation').html('<b>Lower is better.</b> This score between 0 and 1 measures the discrepancy between the test dataset used to orginally evaluate the model and your input dataset. See the documentation for details. <br><br>Here there is a <b>high risk of drift</b>.')
+            $('#drift-explanation').append('<b>high data drift</b>.');
         }
     }
 
@@ -36,7 +36,9 @@ function runAnalysis($this) {
     dataiku.webappBackend.get('get-drift-metrics', {'model_id': modelId, 'version_id': versionId, 'test_set': $("#dataset-selector").val()})
         .then(
             function(data) {
-                $('#drift-score').text(data['drift_accuracy']);                
+                $('#drift-score').text(data['drift_accuracy']);
+                $('#inline-drift-score').text(data['drift_accuracy']);
+                $('#inline-drift-score-2').text(data['drift_accuracy']);
                 changeInputColor('#drift-score', data['drift_accuracy']);
                 $('#error_message').html('');
                 draw(data);
@@ -192,7 +194,7 @@ function drawKDE(data) {
         .attr("x", width/2 + 90)
         .attr("y", height + 29)
         .attr("font-size", 12)
-        .text(" Probability predicted (in %) distribution ");
+        .text(" Predicted probability (in %)");
 
     // A function that update the chart when slider is moved?
     function updateChart(selectedGroup) {

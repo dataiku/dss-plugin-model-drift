@@ -6,71 +6,79 @@
 
 <div class="view-content" style="margin: 8px;">
 
-<div style="width: 1000px">
-    Data drift detection gives you insights on the applicability of a model by detecting when a new dataset differs
-    from the one used for evaluation after training.
-    <br>
-    In order to detect this drift, we run a RandomForest classifier that aims at predicting the data’s origin. 
-    If this drift detection model is successful in its task, this means that the two datasets can be distinguished from one another and that the data has drifted.
-    <br>
-    Provide a dataset on which you want to know if you can confidently apply this model.
-    <div style="margin-top: 8px">
-        <a href="https://www.dataiku.com/community/plugins/info/model-drift.html">Plugin documentation <i class="icon-external-link"></i></a>.
-    </div>
-</div>
-<div style="margin: 16px 0;">
-    Input dataset
-    <select id="dataset-selector" style="width: 200px; margin: 0 8px;"></select>
-    <a class="btn btn-primary notrunning-state" id="run-button" type="button">Run</a>
-    <span class="running-state" style="display: none;">Running...</span>
-</div>
-<div id="error_message" style="width: 1000px; box-sizing: border-box; padding: 0;"></div>
-<div class="result-state" style="display: none;">
-    <div class="white-box">
-        <div id="drift-explanation" class="explanation" style="float: right; width: calc(100% - 250px);">
+    <div style="width: 1000px">
+        Data drift analysis gives you insights on the applicability of a model by exploring how a dataset of new data differs from the evaluation (test) dataset.
+        <br>
+        In order to detect data drift, we train a RandomForest classifier that aims at distinguishing new data from the data present in the test set.
+        If this classifier is performing well, it implies that test data and new data can be distinguished and that you are observing high data drift. You may consider retraining your model in that situation.
+        <br>
+        You need to provide the dataset containing new observations as input.
+        <div style="margin-top: 8px">
+            <a href="https://www.dataiku.com/community/plugins/info/model-drift.html" target="_blank">Plugin documentation <i class="icon-external-link"></i></a>.
         </div>
-        <h2>Drift Score</h2>
-        <div id="drift-score"></div>
     </div>
-
-    <div class="white-box">
-        <h2>Model Information</h2>
-
-        <div style="margin-bottom: 32px">
-            <div class="explanation" style="float: right; width: calc(100% - 550px);">
-            Fugacity expresses the difference between expected and observed samples. We compare the proportion of samples predicted in each class when applying the model on both the original test and your input datasets. 
+    <div style="margin: 16px 0;">
+        Dataset containing new data:
+        <select id="dataset-selector" style="width: 200px; margin: 0 8px;"></select>
+        <a class="btn btn-primary notrunning-state" id="run-button" type="button">Run</a>
+        <span class="running-state" style="display: none;">Training data classifier...</span>
+    </div>
+    <div id="error_message" style="width: 1000px; box-sizing: border-box; padding: 0;"></div>
+    <div class="result-state" style="display: none;">
+        <div class="white-box" style="display: flex;">
+            <div class="drift_score_container" style="float: left; width: 180px;">
+                <h2 style="margin-top: 0.5em;">Drift Score</h2>
+                <div id="drift-score"></div>
             </div>
-            <h3>Fugacity</h3>
-            <div id="fugacity-score"></div>
+            <div id="drift-explanation" class="explanation" style="float: right;"><b>Lower is better.</b> <br>
+            The drift score (between 0 and 1) is low if the test dataset (used to evaluate your model) and your input dataset are indistinguishable. See <a href="https://www.dataiku.com/community/plugins/info/model-drift.html" target="_blank">the documentation</a> for details. <br>
+            Your drift score of <span id="inline-drift-score"></span> indicates </div>
         </div>
 
-        <div>
-            <div class="explanation" style="float: right; width: calc(100% - 550px);">
-                The density functions show the probability density of predicted rows in the test dataset (in the selected class) vs predicted rows in the selected dataset (in the selected class). 
-                <br><br>The density chart illustrates how the original test dataset predicted probability distribution differs from that of the selected dataset. A highly drifted model fully separates the density functions.
+        <div class="white-box">
+            <h2>Model Information</h2>
+
+            <div style="margin-bottom: 32px; display: flex;">
+                <div class="fugacity_score_container"  style="float: left; margin-right: 1em;">
+                    <h3>Fugacity</h3>
+                    <div id="fugacity-score"></div>
+                </div>
+                <div class="explanation" style="float: right; margin-top: 4em;"> <b>Fugacity</b> expresses the difference between the expected "ideal" data your model was trained on and the observed "real" data you are analyzing. We compare the proportion of samples predicted in each class when scoring on both the test and your input datasets.
+                </div>
             </div>
-            <h3>
-                Density chart
-                <select id="label-list"></select>
-            </h3>
-            <div id="kde-chart"></div>
-        </div>
-    </div>
 
-    <div class="white-box">
-        <h2>Feature Drift Overview</h2>
-        <div class="explanation" style="float: right; width: calc(100% - 550px);">
-        The scatter plot shows how each features are important in the original model as well as in the drift detection model.<br><br> 
-        On the x-axis is the drift feature importance, i.e. the feature importance in the drift detection model.<br><br> 
-        The closer the point is to the right, the more the feature was important in the drift model. On the y-axis is the original feature importance ranking.<br><br>
-        
-            <b>This graph should be examined alongside with the drift score</b>. For example, given a highly drifted dataset (drift score ~1), if the most important features 
-        that drive the drift are not significant in the original model (low importance in the original one), you can expect the behavior of the model to still be the same.<br><br>
-        On the contrary, in a situation with a high drift score and where the impacted features are important in the original model (ie. some points are on the top right of this chart),
-        the performance of the model will probably change on the new test set.    <br><br>
+            <div style="display: flex;">
+                <div class="kde_chart_container"  style="float: left;">
+                    <h3>
+                        Density chart
+                        <select id="label-list"></select>
+                    </h3>
+                    <div id="kde-chart"></div>
+                </div>
+                <div class="explanation" style="float: right; margin-top: 4em;">
+                    This chart represents the probability density estimation for a given prediction class when scoring both the test dataset and your input dataset.
+                    <br><br>Visually different probability density estimations indicate high data drift.
+                </div>
+            </div>
         </div>
-        <div id="feat-imp-plot"></div>
+
+        <div class="white-box">
+            <h2>Feature Drift Overview</h2>
+            <div style="display: flex;">
+                <div class="impl_plot_container"  style="float: left; margin-right: 1em;">
+                    <div id="feat-imp-plot"></div>
+                </div>
+
+            <div class="explanation" style="float: right;">
+                The scatter plot shows feature importance for the original model versus feature importance for the (data classifying) drift model.<br><br>
+
+                <b>This graph should be examined alongside with the drift score (<span id="inline-drift-score-2"></span>)</b>. <br>
+                For a highly drifted dataset (drift score ~1), if the features most responsible for data drift are of low importance in the original model (bottom right quadrant), you can expect the behavior of the model to remain the same.<br><br>
+                Features in the top right quadrant of this scatter plot are highly drifted (i.e. they are powerful in distinguishing test data from new observations), but also of high importance for the original model. In this situation, you can expect the performance of the model to degrade as your model does not apply to your new observations.
+            </div>
+        </div>
+
+        </div>
     </div>
-</div>
 
 </div>
