@@ -250,7 +250,7 @@ function getMaxY(data) {
 function drawFeatureImportance(data) {
     d3.select("#feat-imp-plot").select("svg").remove();
     
-    var values = Object.keys(data).map(function(key){
+    let values = Object.keys(data).map(function(key){
         return data[key];
     })
     
@@ -292,7 +292,7 @@ function drawFeatureImportance(data) {
         .style("font-size", "20px")
     
     let tipMouseover = function(d) {
-        var html  = d["feature"];
+        let html  = d["feature"];
         tooltip.html(html)
             .style("left", d + "px")
             .style("top", d  + "px")
