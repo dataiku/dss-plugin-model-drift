@@ -1,7 +1,4 @@
 # coding: utf-8
-import numpy as np
-
-
 # python3 does not have basetring
 try:
     basestring

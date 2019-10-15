@@ -63,7 +63,7 @@ function markRunning(running) {
 
 function draw(data) {
     drawFugacity(data['fugacity']);
-    drawKDE(data['kde'], data['stat_metrics']);
+    drawKDE(data['kde']);
     drawFeatureImportance(data['feature_importance']);
 }
 
@@ -95,10 +95,10 @@ function json2table(json, classes) {
     return `<table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
-function drawKDE(data, statMetrics) {
+function drawKDE(data) {
     d3.select("#kde-chart").select("svg").remove();
     d3.select("#label-list").selectAll("option").remove();
-    
+
     let margin = {top: 30, right: 30, bottom: 30, left: 50};
     let width = 460 - margin.left - margin.right;
     let height = 400 - margin.top - margin.bottom;
@@ -113,7 +113,6 @@ function drawKDE(data, statMetrics) {
 
     // List of groups (here I have one group per column)
     let labels = Object.keys(data);
-
     // add the options to the button
     d3.select("#label-list")
         .selectAll('myOptions')
@@ -131,10 +130,6 @@ function drawKDE(data, statMetrics) {
     svg.append("g")
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
-
-    t_test = statMetrics[labels[1]]['t_test'];
-    power = statMetrics[labels[1]]['power'];
-    $("#t-test-result").text(t_test);
 
     let density1 = data[labels[1]]['original'];
     let density2 = data[labels[1]]['new'];
@@ -344,13 +339,3 @@ function drawFeatureImportance(data) {
     .on("mouseover", tipMouseover)
      .on("mouseout", tipMouseout);
 }
-
-
-
-
-
-
-
-
-
-

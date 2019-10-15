@@ -22,7 +22,6 @@ dataiku.webappBackend = (function() {
             }
         })
         .then(response => {
-            console.warn('resp', response)
             if (response.status == 502) {
                 throw Error("Webapp backend not started");
             } else if (!response.ok) {

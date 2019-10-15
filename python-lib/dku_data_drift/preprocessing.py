@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import sys
 import random
 from collections import Counter
@@ -7,13 +6,11 @@ from datetime import datetime
 import logging
 
 import numpy as np
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 EPOCH = datetime(1900, 1, 1)
 
 class Preprocessor:
-
     def __init__ (self, df=None, target=None):
         self.df = df
         self.target = target
@@ -101,14 +98,12 @@ class Preprocessor:
             df_train[feature] = df_train[feature].fillna(v)
             df_test[feature] = df_test[feature].fillna(v)
             logger.info('Imputed missing values in feature %s with value %s' % (feature, self._coerce_to_unicode(v)))
-
         return df_train, df_test
 
     def _dummy_encode(self, dfx, dummy_values_dict):
         dfx_copy = dfx.copy()
         for (feature, dummy_values) in dummy_values_dict.items():
             for dummy_value in dummy_values:
-                #TODO add dummy:N/A and dummy:_Others_
                 dummy_name = u'dummy:%s:%s' % (feature, self._coerce_to_unicode(dummy_value))
                 dfx_copy[dummy_name] = (dfx_copy[feature] == dummy_value).astype(float)
             del dfx_copy[feature]

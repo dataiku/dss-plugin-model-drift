@@ -3,8 +3,6 @@ import logging
 import math
 import numpy as np
 import pandas as pd
-from scipy import stats
-from statsmodels.stats.power import TTestIndPower
 from sklearn.neighbors import KernelDensity
 from sklearn.metrics import roc_auc_score, accuracy_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
@@ -18,11 +16,13 @@ logger = logging.getLogger(__name__)
 ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
 FROM_ORIGINAL = 'original'
 FROM_NEW = 'new'
-MIN_NUM_ROWS = 1000 # heuristic choice
-ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
+MIN_NUM_ROWS = 1000  # heuristic choice
+ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier,
+                                       DecisionTreeClassifier]
 
 CUMULATIVE_PERCENTAGE_THRESHOLD = 90
 PREDICTION_TEST_SIZE = 10000
+
 
 class DriftAnalyzer:
 
@@ -51,9 +51,9 @@ class DriftAnalyzer:
         df = self._prepare_data_for_drift_model(new_test_df)
         preprocessor = Preprocessor(df, target=ORIGIN_COLUMN)
         train, test = preprocessor.get_processed_train_test()
-        
+
         if not_enough_data(df, min_len=min_num_row):
-            raise ValueError('The processed dataset has less than {} rows, not enough to train drift model'.format(min_num_row))
+            raise ValueError('The processed dataset has less than {} rows, not enough to train drift model.'.format(min_num_row))
 
         train_X = train.drop(ORIGIN_COLUMN, axis=1)
         train_Y = np.array(train[ORIGIN_COLUMN])
@@ -102,7 +102,8 @@ class DriftAnalyzer:
 
         logger.info("Rebalancing data:")
         number_of_rows = min(original_df.shape[0], new_df.shape[0])
-        logger.info(" - original test dataset had %s rows, new dataframe has %s. Selecting %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
+        logger.info(" - original test dataset had %s rows, new dataframe has %s. Selecting %s for each." % (
+        original_df.shape[0], new_df.shape[0], number_of_rows))
 
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
         selected_features = [ORIGIN_COLUMN] + self._model_accessor.get_selected_features()
@@ -131,7 +132,6 @@ class DriftAnalyzer:
             sample_weight = None
         X_plot = np.linspace(0, 100, 500, dtype='int')[:, np.newaxis]
         kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
-        Y_plot = np.exp(kde.score_samples(X_plot))
         Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
         return zip(X_plot.ravel(), Y_plot)
 
@@ -147,10 +147,11 @@ class DriftAnalyzer:
         dfx['cumulative_importance'] = dfx['importance'].cumsum()
         dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
         return dfx_top.rename_axis('rank').reset_index().set_index('feature')
-    
+
     def _get_feature_importance_metrics(self, drift_features, drift_clf):
         original_feature_importance_df = self._model_accessor.get_feature_importance()
-        drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf, cumulative_percentage_threshold=95)
+        drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf,
+                                                                         cumulative_percentage_threshold=95)
         topn_drift_feature = drift_feature_importance_df.to_dict()['importance']
         topn_original_feature = original_feature_importance_df.to_dict()['importance']
         feature_importance_metrics = []
@@ -158,24 +159,25 @@ class DriftAnalyzer:
             drift_feat_rank = topn_drift_feature.get(feature)
             original_feat_rank = topn_original_feature.get(feature)
             if drift_feat_rank is None:
-                logger.warn('Feature {} does not exist in the most important features of the drift model.'.format(feature))
+                logger.warn('Feature {} is not in the list of most important features of the drift model.'.format(feature))
             if original_feat_rank is None:
-                logger.warn('Feature {} does not exist in the most important features of the orignal model.'.format(feature))            
+                logger.warn('Feature {} is not in the list of most important features of the orignal model.'.format(feature))
             feature_importance_metrics.append({
-                'original_model': original_feat_rank if original_feat_rank else 0.01, 
-                 'drift_model': drift_feat_rank if drift_feat_rank else 0.01,
-                 'feature': feature
+                'original_model': original_feat_rank if original_feat_rank else 0.01,
+                'drift_model': drift_feat_rank if drift_feat_rank else 0.01,
+                'feature': feature
             })
         return feature_importance_metrics
 
-    def _exponential_function(self, score): 
-        return round(np.exp(1 - 1/(np.power(score, 2.5))),2)
-    
+    def _exponential_function(self, score):
+        return round(np.exp(1 - 1 / (np.power(score, 2.5))), 2)
+
     def _get_drift_accuracy(self, drift_clf):
         predicted_Y = drift_clf.predict(self._test_X)
         test_Y = pd.Series(self._test_Y)
         drift_accuracy = accuracy_score(test_Y, predicted_Y)
-        return self._exponential_function(drift_accuracy) # make the score looks more "logic" from the user point of view
+        return self._exponential_function(
+            drift_accuracy)  # make the score looks more "logic" from the user point of view
 
     def _get_predictions(self, limit=10000):
         """
