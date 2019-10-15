@@ -19,8 +19,7 @@ ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain th
 FROM_ORIGINAL = 'original'
 FROM_NEW = 'new'
 MIN_NUM_ROWS = 1000 # heuristic choice
-ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier,
-                                       DecisionTreeClassifier]
+ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
 
 CUMULATIVE_PERCENTAGE_THRESHOLD = 90
 PREDICTION_TEST_SIZE = 10000
@@ -38,7 +37,7 @@ class DriftAnalyzer:
     def check(self):
         predictor = self._model_accessor.get_predictor()
         if not self._algorithm_is_supported(predictor):
-            raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(clf.__module__))
+            raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(predictor._clf.__module__))
 
     def train_drift_model(self, new_test_df, min_num_row=MIN_NUM_ROWS):
         """
@@ -54,7 +53,7 @@ class DriftAnalyzer:
         train, test = preprocessor.get_processed_train_test()
         
         if not_enough_data(df, min_len=min_num_row):
-            raise ValueError('The processed dataset has less than {} rows, not enough to compute drift score'.format(min_num_row))
+            raise ValueError('The processed dataset has less than {} rows, not enough to train drift model'.format(min_num_row))
 
         train_X = train.drop(ORIGIN_COLUMN, axis=1)
         train_Y = np.array(train[ORIGIN_COLUMN])
@@ -86,10 +85,9 @@ class DriftAnalyzer:
                 predictions_by_class[label] = {FROM_ORIGINAL: original_proba, FROM_NEW: new_proba}
         kde_dict = self._get_kde(predictions_by_class)
         fugacity_metrics = self._get_fugacity(prediction_dict)
-        stat_metrics = self._get_stat_test(kde_dict)
         label_list = [label for label in fugacity_metrics[0].keys() if label != 'source']
         return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy, 'kde': kde_dict,
-                'stat_metrics': stat_metrics, 'fugacity': fugacity_metrics, 'label_list': label_list}
+                'fugacity': fugacity_metrics, 'label_list': label_list}
 
     def _prepare_data_for_drift_model(self, new_test_df):
         target = self._model_accessor.get_target_variable()
@@ -149,20 +147,6 @@ class DriftAnalyzer:
         dfx['cumulative_importance'] = dfx['importance'].cumsum()
         dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
         return dfx_top.rename_axis('rank').reset_index().set_index('feature')
-
-    def _get_stat_test(self, kde_dict, alpha=0.05):
-        power_analysis = TTestIndPower()
-        stat_test_dict = {}
-        for label in kde_dict.keys():
-            kde_original = [x[1] for x in kde_dict.get(label).get(FROM_ORIGINAL)]
-            kde_new = [x[1] for x in kde_dict.get(label).get(FROM_NEW)]
-            # this effect size has an equal variance assumption (?)
-            effect_size = np.abs((np.mean(kde_original) - np.mean(kde_new))) / np.std(kde_original)
-            power = power_analysis.power(effect_size=effect_size, nobs1=len(kde_original), alpha=0.05)
-            t_test = stats.ttest_ind(kde_original, kde_new, equal_var=False)[-1]
-            stat_test_dict[label] = {'t_test': round(t_test, 4), 'power': round(power, 4)}
-
-        return stat_test_dict
     
     def _get_feature_importance_metrics(self, drift_features, drift_clf):
         original_feature_importance_df = self._model_accessor.get_feature_importance()
@@ -184,7 +168,6 @@ class DriftAnalyzer:
             })
         return feature_importance_metrics
 
-    
     def _exponential_function(self, score): 
         return round(np.exp(1 - 1/(np.power(score, 2.5))),2)
     
