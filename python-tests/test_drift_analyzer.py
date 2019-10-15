@@ -100,22 +100,14 @@ class TestDriftAnalyzer:
     def test_empty_set(self):
         _, feature_names, _ = load_data()
         new_test_df = pd.DataFrame(columns=feature_names)
-        drift_features, drift_clf = self.drifter.train_drift_model(new_test_df)
-        result_dict = self.drifter.compute_drift_metrics(drift_features, drift_clf)
-
-        assert drift_features is None
-        assert drift_clf is None
-        assert result_dict == {}
+        with pytest.raises(Exception) as e_info:
+            drift_features, drift_clf = self.drifter.train_drift_model(new_test_df)
 
     def test_one_row_set(self):
         _, feature_names, _ = load_data()
         new_test_df = pd.DataFrame(columns=feature_names)
-        drift_features, drift_clf = self.drifter.train_drift_model(new_test_df)
-        result_dict = self.drifter.compute_drift_metrics(drift_features, drift_clf)
-
-        assert drift_features is None
-        assert drift_clf is None
-        assert result_dict == {}
+        with pytest.raises(Exception) as e_info:
+            drift_features, drift_clf = self.drifter.train_drift_model(new_test_df)
 
     def test_missing_feature_set(self):
         df, feature_names, _ = load_data()
@@ -123,27 +115,27 @@ class TestDriftAnalyzer:
         new_test_df = new_test_df.drop(feature_names[0], 1)
 
         with pytest.raises(Exception) as e_info:
-            drift_features, drift_clf = self.drifter.train_drift_model(new_test_df)
-            result_dict = self.drifter.compute_drift_metrics(drift_features, drift_clf)
+            drift_features, drift_clf = self.drifter.train_drift_model(new_test_df, min_num_row=10)
 
     def test_identical_set(self):
         df, _, _ = load_data()
         _, new_test_df = train_test_split(df, test_size=TEST_RATIO, random_state=RANDOM_SEED)
-        drift_features, drift_clf = self.drifter.train_drift_model(new_test_df)
+        drift_features, drift_clf = self.drifter.train_drift_model(new_test_df, min_num_row=10)
         result_dict = self.drifter.compute_drift_metrics(drift_features, drift_clf)
 
         drift_accuracy = result_dict.get('drift_accuracy')
         fugacity = result_dict.get('fugacity')
         feature_importance = result_dict.get('feature_importance')
 
-        original_model_feature_importance = [feat_imp['original_model'] for feat_imp in feature_importance]
-        drift_model_feature_importance = [feat_imp['drift_model'] for feat_imp in feature_importance]
+        original_model_feature_importance = sorted([feat_imp['original_model'] for feat_imp in feature_importance])
+        drift_model_feature_importance = sorted([feat_imp['drift_model'] for feat_imp in feature_importance])
 
-        assert drift_accuracy == 0.5 # no drift, model can not distinguish, accuracy is 0.5
+        assert drift_accuracy == 0.01 # no drift, model can not distinguish, accuracy is 0.5 -> transformed score is 0.01
         for fugacity_one_class in fugacity:
-            assert fugacity_one_class.get('New test set') == fugacity_one_class.get('Original test set')
-        assert np.array_equal(original_model_feature_importance, [46.77454270154651, 4.104373776656671, 43.17215785326303, 5.948925668533793])
-        assert np.array_equal(drift_model_feature_importance, [27.141709051012583, 24.828325796836367, 21.39063924788051, 26.639325904270546])
+            assert fugacity_one_class.get('Selected dataset') == fugacity_one_class.get('Original dataset')
+
+        assert np.array_equal(original_model_feature_importance, sorted([0.01, 46.77454270154651, 43.17215785326303, 0.01]))
+        assert np.array_equal(drift_model_feature_importance, sorted([24.828325796836367, 27.141709051012583, 0.01, 26.639325904270546]))
 
 
     def test_drifted_set(self):
@@ -153,14 +145,14 @@ class TestDriftAnalyzer:
         new_test_df = original_test_df.copy()
         new_test_df[feature_names] = new_test_df[feature_names] * 2 # shift the feature distribution
 
-        drift_features, drift_clf = self.drifter.train_drift_model(new_test_df)
+        drift_features, drift_clf = self.drifter.train_drift_model(new_test_df, min_num_row=10)
         result_dict = self.drifter.compute_drift_metrics(drift_features, drift_clf)
 
         drift_accuracy = result_dict.get('drift_accuracy')
         fugacity = result_dict.get('fugacity')
 
-        prediction_distribution_original_test_set = [fuga['Original test set'] for fuga in fugacity]
-        prediction_distribution_new_test_set = [fuga['New test set'] for fuga in fugacity]
+        prediction_distribution_original_test_set = [fuga['Original dataset'] for fuga in fugacity]
+        prediction_distribution_new_test_set = [fuga['Selected dataset'] for fuga in fugacity]
 
 
         assert drift_accuracy == 1 # no drift, model can not distinguish, accuracy is 0.5
