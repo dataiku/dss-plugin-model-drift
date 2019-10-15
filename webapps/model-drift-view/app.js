@@ -113,7 +113,6 @@ function drawKDE(data) {
 
     // List of groups (here I have one group per column)
     let labels = Object.keys(data);
-    console.warn('OPTION: ',data)
     // add the options to the button
     d3.select("#label-list")
         .selectAll('myOptions')

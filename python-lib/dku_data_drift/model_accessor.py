@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class ModelAccessor:
     def get_predictor(self):
         return self.model_handler.get_predictor()
 
-    def get_feature_importance(self, cumulative_percentage_threshold=90):
+    def get_feature_importance(self, cumulative_percentage_threshold=80):
         predictor = self.get_predictor()
         clf = predictor._clf
         feature_importance = []

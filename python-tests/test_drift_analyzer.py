@@ -155,7 +155,7 @@ class TestDriftAnalyzer:
         prediction_distribution_new_test_set = [fuga['Selected dataset'] for fuga in fugacity]
 
 
-        assert drift_accuracy == 1 # no drift, model can not distinguish, accuracy is 0.5
+        assert drift_accuracy == 1
         assert np.array_equal(prediction_distribution_original_test_set, [24.44, 40.0, 35.56])
         assert np.array_equal(prediction_distribution_new_test_set, [22.22, 2.22, 75.56])
 

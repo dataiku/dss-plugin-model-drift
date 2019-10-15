@@ -1,5 +1,5 @@
 {
-  "acceptedPythonInterpreters": [PYTHON27, PYTHON35],
+  "acceptedPythonInterpreters": [PYTHON27, PYTHON35, PYTHON37],
   "forceConda": false,
   "installCorePackages": true,
   "installJupyterSupport": false
