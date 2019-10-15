@@ -15,17 +15,19 @@ $('#run-button').click(function() {
     runAnalysis($('#run-button'));
 });
 
-
 function changeInputColor(input, value){
         $(input).removeClass();
         if (value < 0.1){
             $(input).addClass('low-risk');
+            $('#drift-explanation').html('<b>Lower is better.</b> This score between 0 and 1 measures the discrepancy between the test dataset used to orginally evaluate the model and your input dataset. See the documentation for details. <br><br>Here there is a <b>low risk of drift</b>.')
         }
         else if(value >= 0.1 && value <= 0.5){
             $(input).addClass('medium-risk');
+            $('#drift-explanation').html('<b>Lower is better.</b> This score between 0 and 1 measures the discrepancy between the test dataset used to orginally evaluate the model and your input dataset. See the documentation for details. <br><br>Here there is a <b>medium risk of drift</b>.')
         }
         else{
             $(input).addClass('high-risk');
+            $('#drift-explanation').html('<b>Lower is better.</b> This score between 0 and 1 measures the discrepancy between the test dataset used to orginally evaluate the model and your input dataset. See the documentation for details. <br><br>Here there is a <b>high risk of drift</b>.')
         }
     }
 
@@ -34,7 +36,7 @@ function runAnalysis($this) {
     dataiku.webappBackend.get('get-drift-metrics', {'model_id': modelId, 'version_id': versionId, 'test_set': $("#dataset-selector").val()})
         .then(
             function(data) {
-                $('#drift-score').text(data['drift_accuracy']);
+                $('#drift-score').text(data['drift_accuracy']);                
                 changeInputColor('#drift-score', data['drift_accuracy']);
                 $('#error_message').html('');
                 draw(data);
@@ -159,8 +161,8 @@ function drawKDE(data, statMetrics) {
         .attr("class", "mypath")
         .datum(density1)
         .attr("fill", "#2b67ff")
-        .attr("opacity", ".6")
-        .attr("stroke", "#000")
+        .attr("fill-opacity", ".4")
+        .attr("stroke", "#2b67ff")
         .attr("stroke-width", 2)
         .attr("stroke-linejoin", "round")
         .attr("d", d3.line()
@@ -174,8 +176,8 @@ function drawKDE(data, statMetrics) {
         .attr("class", "mypath")
         .datum(density2)
         .attr("fill", "#ff832b")
-        .attr("opacity", ".6")
-        .attr("stroke", "#000")
+        .attr("fill-opacity", ".4")
+        .attr("stroke", "#ff832b")
         .attr("stroke-width", 2)
         .attr("stroke-linejoin", "round")
         .attr("d", d3.line()
@@ -199,11 +201,6 @@ function drawKDE(data, statMetrics) {
 
     // A function that update the chart when slider is moved?
     function updateChart(selectedGroup) {
-
-        t_test = statMetrics[labels[1]]['t_test'];
-        power = statMetrics[labels[1]]['power'];
-        $("#t-test").text('T-test p-value: ' + t_test);
-        $("#power").text('Statistical power: '+ power);
 
         // recompute density estimation
         density1 = data[selectedGroup]['original'];
@@ -247,65 +244,113 @@ function drawKDE(data, statMetrics) {
     });
 }
 
+function getMaxX(data) {
+  return data.reduce((max, p) => p['drift_model'] > max ? p['drift_model'] : max, data[0]['drift_model']);
+}
+
+function getMaxY(data) {
+  return data.reduce((max, p) => p['original_model'] > max ? p['original_model'] : max, data[0]['original_model']);
+}
+
 function drawFeatureImportance(data) {
     d3.select("#feat-imp-plot").select("svg").remove();
-    //sort bars based on value
-    data = data.sort(function (a, b) {
-        return d3.descending(a['original_model'], b['original_model']);
-    });
-
-    // set the dimensions and margins of the graph
-    let margin = {top: 20, right: 30, bottom: 40, left: 90};
+    
+    var values = Object.keys(data).map(function(key){
+        return data[key];
+    })
+    
+    let maxX = getMaxX(values);
+    let maxY = getMaxY(values); 
+    let margin = {top: 10, right: 30, bottom: 30, left: 60};
     let width = 460 - margin.left - margin.right;
     let height = 400 - margin.top - margin.bottom;
-
-    // append the svg object to the body of the page
-    let svg = d3.select("#feat-imp-plot")
-        .append("svg")
+    
+    let svg = d3.select("#feat-imp-plot").append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-    let max_x_drift = data.reduce((max, data) => data['drift_model'] > max ? data['drift_model'] : max, data[0]['drift_model']);
-
-    let color = d3.scaleLinear()
-        .domain([0, max_x_drift])
-        .range(['#33fa20','#ff0e00'])
-        .interpolate(d3.interpolateHcl);
-
-
-    let max_x = data.reduce((max, data) => data['original_model'] > max ? data['original_model'] : max, data[0]['original_model']);
-
-    // Add X axis
+        .attr("transform","translate(" + margin.left + "," + margin.top + ")");
+    
     let x = d3.scaleLinear()
-        .domain([0, max_x])
+        .domain([0, maxX])
         .range([ 0, width]);
+    
     svg.append("g")
         .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x))
-        .selectAll("text")
-        .attr("transform", "translate(-10,0)rotate(-45)")
-        .style("text-anchor", "end");
+        .call(d3.axisBottom(x));
+    
+    let y = d3.scaleLinear()
+        .domain([0, maxY])
+        .range([height, 0]);
+    
+    svg.append("g").call(d3.axisLeft(y));
+    
+    let tooltip = d3.select("#feat-imp-plot")
+        .append("div")
+        .style("opacity", 0)
+        .attr("class", "tooltip")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "1px")
+        .style("border-radius", "5px")
+        .style("padding", "10px") 
+        .style("font-size", "20px")
+    
+    let tipMouseover = function(d) {
+        var html  = d["feature"];
+        tooltip.html(html)
+            .style("left", d + "px")
+            .style("top", d  + "px")
+            .transition()
+            .duration(200) // ms
+            .style("opacity", .9) 
+    };
+    
+    // Add X axis label:	 
+      svg.append("text")	
+          .attr("text-anchor", "end")	
+          .attr("x", width/2 + margin.left + 50)	
+          .attr("y", height + margin.top + 20)	
+          .attr("font-size", 12)	
+          .text("Feature drift importance (%)");	
 
-    // Y axis
-    let y = d3.scaleBand()
-        .range([ 0, height ])
-        .domain(data.map(d => d['feature']))
-        .padding(.1);
-    svg.append("g")
-        .call(d3.axisLeft(y))
-
-    //Bars
-    svg.selectAll("myRect")
-        .data(data)
+      // Y axis label:	
+      svg.append("text")	
+          .attr("text-anchor", "end")	
+          .attr("transform", "rotate(-90)")	
+          .attr("y", - margin.left + 20)	
+          .attr("x", - margin.top - height/2 + 120)	
+          .attr("font-size", 12)	
+          .text("Original model feature importance (%)");
+    
+      // tooltip mouseout event handler	
+      let tipMouseout = function(d) {	
+          tooltip.transition()	
+              .duration(300) // ms	
+              .style("opacity", 0); // don't care about position!	
+      };	
+    
+    // Add dots	
+      svg.append('g')	
+        .selectAll("dot")	
+        .data(values)	
         .enter()
-        .append("rect")
-        .attr("x", x(0) )
-        .attr("y", d => y(d['feature']))
-        .attr("width", d => x(d['original_model']))
-        .attr("height", y.bandwidth() )
-        .attr("fill", d => color(d['drift_model']))
-        .attr("opacity", 0.8)
-        .append("text");
+        .append("circle")
+        .attr("cx", function (d) { return x(d['drift_model']); } )
+        .attr("cy", function (d) { return y(d['original_model']); } )
+        .attr("r", 6)
+        .style("fill", "#2b67ff")
+        .style("opacity", 1)
+    .on("mouseover", tipMouseover)
+     .on("mouseout", tipMouseout);
 }
+
+
+
+
+
+
+
+
+
+

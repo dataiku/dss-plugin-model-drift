@@ -18,10 +18,12 @@ logger = logging.getLogger(__name__)
 ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
 FROM_ORIGINAL = 'original'
 FROM_NEW = 'new'
-MIN_NUM_ROWS = 10 # heuristic choice
+MIN_NUM_ROWS = 1000 # heuristic choice
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier,
                                        DecisionTreeClassifier]
 
+CUMULATIVE_PERCENTAGE_THRESHOLD = 90
+PREDICTION_TEST_SIZE = 10000
 
 class DriftAnalyzer:
 
@@ -38,7 +40,7 @@ class DriftAnalyzer:
         if not self._algorithm_is_supported(predictor):
             raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(clf.__module__))
 
-    def train_drift_model(self, new_test_df):
+    def train_drift_model(self, new_test_df, min_num_row=MIN_NUM_ROWS):
         """
         Trains a classifier that attempts to discriminate between rows from the provided dataframe and
         rows from the dataset originally used to evaluate the model
@@ -47,13 +49,12 @@ class DriftAnalyzer:
         """
         logger.info("Preparing the drift model...")
 
-        if not_enough_data(new_test_df, min_len=MIN_NUM_ROWS):
-            logger.warning('The new test set has less than {} rows, not enough to compute drift score'.format(MIN_NUM_ROWS))
-            return None, None
-
         df = self._prepare_data_for_drift_model(new_test_df)
         preprocessor = Preprocessor(df, target=ORIGIN_COLUMN)
         train, test = preprocessor.get_processed_train_test()
+        
+        if not_enough_data(df, min_len=min_num_row):
+            raise ValueError('The processed dataset has less than {} rows, not enough to compute drift score'.format(min_num_row))
 
         train_X = train.drop(ORIGIN_COLUMN, axis=1)
         train_Y = np.array(train[ORIGIN_COLUMN])
@@ -73,9 +74,9 @@ class DriftAnalyzer:
             return {}
 
         logger.info("Computing drift metrics ...")
-        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf, top_n=50)
+        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf)
         drift_accuracy = self._get_drift_accuracy(drift_clf)
-        prediction_dict = self._get_predictions(limit=10000)
+        prediction_dict = self._get_predictions(limit=PREDICTION_TEST_SIZE)
 
         predictions_by_class = {}
         for label in prediction_dict.get(FROM_ORIGINAL).columns:
@@ -106,11 +107,8 @@ class DriftAnalyzer:
         logger.info(" - original test dataset had %s rows, new dataframe has %s. Selecting %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
 
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
-
         selected_features = [ORIGIN_COLUMN] + self._model_accessor.get_selected_features()
-
         missing_features = set(selected_features) - set(new_df.columns)
-
         if len(missing_features) > 0:
             raise ValueError('Missing columns in the new test set: {}'.format(', '.join(list(missing_features))))
 
@@ -139,7 +137,7 @@ class DriftAnalyzer:
         Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
         return zip(X_plot.ravel(), Y_plot)
 
-    def _get_drift_feature_importance(self, drift_features, drift_clf):
+    def _get_drift_feature_importance(self, drift_features, drift_clf, cumulative_percentage_threshold=95):
         feature_importance = []
         for feature_name, feat_importance in zip(drift_features, drift_clf.feature_importances_):
             feature_importance.append({
@@ -147,9 +145,10 @@ class DriftAnalyzer:
                 'importance': 100 * feat_importance / sum(drift_clf.feature_importances_)
             })
 
-        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(
-            drop=True)  # .drop('importance', axis=1)
-        return dfx.rename_axis('rank').reset_index().set_index('feature')
+        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
+        dfx['cumulative_importance'] = dfx['importance'].cumsum()
+        dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
+        return dfx_top.rename_axis('rank').reset_index().set_index('feature')
 
     def _get_stat_test(self, kde_dict, alpha=0.05):
         power_analysis = TTestIndPower()
@@ -164,24 +163,25 @@ class DriftAnalyzer:
             stat_test_dict[label] = {'t_test': round(t_test, 4), 'power': round(power, 4)}
 
         return stat_test_dict
-
-    def _get_feature_importance_metrics(self, drift_features, drift_clf, top_n):
+    
+    def _get_feature_importance_metrics(self, drift_features, drift_clf):
         original_feature_importance_df = self._model_accessor.get_feature_importance()
-        drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf)
-        topn_drift_feature = drift_feature_importance_df[:top_n].to_dict()['importance']
-        topn_original_feature = original_feature_importance_df.loc[topn_drift_feature.keys()].to_dict()['importance']
+        drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf, cumulative_percentage_threshold=95)
+        topn_drift_feature = drift_feature_importance_df.to_dict()['importance']
+        topn_original_feature = original_feature_importance_df.to_dict()['importance']
         feature_importance_metrics = []
-        for feature in topn_original_feature.keys():
+        for feature in set(topn_original_feature.keys()).union(set(topn_drift_feature.keys())):
             drift_feat_rank = topn_drift_feature.get(feature)
-            if np.isnan(drift_feat_rank):
-                logger.warn('Feature {} does not exist in the orignal test set.'.format(feature))
-            elif np.isnan(topn_original_feature.get(feature, 0)):
-                logger.warn('No original_model.')  # TODO no idea what this means, did not think, just added this list to avoid nan here
-            else:
-                feature_importance_metrics.append(
-                    {'original_model': topn_original_feature.get(feature, 0), 'drift_model': drift_feat_rank,
-                     'feature': feature}
-                )
+            original_feat_rank = topn_original_feature.get(feature)
+            if drift_feat_rank is None:
+                logger.warn('Feature {} does not exist in the most important features of the drift model.'.format(feature))
+            if original_feat_rank is None:
+                logger.warn('Feature {} does not exist in the most important features of the orignal model.'.format(feature))            
+            feature_importance_metrics.append({
+                'original_model': original_feat_rank if original_feat_rank else 0.01, 
+                 'drift_model': drift_feat_rank if drift_feat_rank else 0.01,
+                 'feature': feature
+            })
         return feature_importance_metrics
 
     
@@ -219,8 +219,8 @@ class DriftAnalyzer:
             temp_fugacity = {}
             new_key = "Predicted {} (%)".format(key)
             temp_fugacity[' Score'] = new_key
-            temp_fugacity['Original test set'] = original_fugacity.get(key, 0.)
-            temp_fugacity['New test set'] = new_fugacity.get(key, 0.)
+            temp_fugacity['Original dataset'] = original_fugacity.get(key, 0.)
+            temp_fugacity['Selected dataset'] = new_fugacity.get(key, 0.)
             fugacity.append(temp_fugacity)
         return fugacity
 

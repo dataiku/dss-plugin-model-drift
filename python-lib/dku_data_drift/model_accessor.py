@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ class ModelAccessor:
     def get_predictor(self):
         return self.model_handler.get_predictor()
 
-    def get_feature_importance(self, top_n=20):
+    def get_feature_importance(self, cumulative_percentage_threshold=90):
         predictor = self.get_predictor()
         clf = predictor._clf
         feature_importance = []
@@ -36,9 +35,11 @@ class ModelAccessor:
                 'feature': feature_name,
                 'importance': 100*feat_importance/sum(feature_importances)
             })
-
-        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True).iloc[:top_n]#.drop('importance', axis=1)
-        return dfx.rename_axis('rank').reset_index().set_index('feature')
+        
+        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
+        dfx['cumulative_importance'] = dfx['importance'].cumsum()
+        dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
+        return dfx_top.rename_axis('rank').reset_index().set_index('feature')
 
     def get_selected_features(self):
         selected_features = []

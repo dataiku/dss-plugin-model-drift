@@ -1,6 +1,6 @@
 {
     "meta": {
-        "label": "Model drift analyzer",
+        "label": "Data drift analyzer",
         "description": "Get insights on the applicability of a model by detecting when a new dataset differs from the one used for evaluation after training.",
         "icon": "icon-anchor"
     },
