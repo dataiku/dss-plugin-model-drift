@@ -37,7 +37,7 @@ def _get_model_info_handler(saved_model_version_id):
         return PredictionModelInformationHandler(split_desc, core_params, version_folder, version_folder)
     except Exception as e:
         from future.utils import raise_
-        if str(e) == "'ascii' codec can't decode byte 0xba in position 25: ordinal not in range(128)":
+        if "ordinal not in range(128)" in str(e):
             raise_(Exception, "The plugin is using a python3 code-env, cannot load a python2 model.", sys.exc_info()[2])
         elif str(e) == "non-string names in Numpy dtype unpickling":
             raise_(Exception, "The plugin is using a python2 code-env, cannot load a python3 model.", sys.exc_info()[2])
