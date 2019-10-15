@@ -1,7 +1,7 @@
 {
     "meta": {
-        "label": "Data drift analyzer",
-        "description": "Get insights on the applicability of a model by detecting when a new dataset differs from the one used for evaluation after training.",
+        "label": "Data drift analysis",
+        "description": "Get insights on the applicability of a model by exploring how a dataset of new data differs from the  evaluation (test) dataset.",
         "icon": "icon-anchor"
     },
     "baseType": "STANDARD",
