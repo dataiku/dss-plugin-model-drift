@@ -90,11 +90,11 @@ function json2table(json, classes) {
     json.map(function(row) {
         body += '<tr>';
         cols.map(function(colName) {
-            body += '<td>' + row[colName] + '</td>';
+            body += '<td align="middle">' + row[colName] + '</td>';
         });
         body += '</tr>';
     });
-    return `<table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
+    return `<div><table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function drawKDE(data) {
@@ -102,8 +102,8 @@ function drawKDE(data) {
     d3.select("#label-list").selectAll("option").remove();
     
     let margin = {top: 30, right: 30, bottom: 30, left: 50};
-    let width = 460 - margin.left - margin.right;
-    let height = 400 - margin.top - margin.bottom;
+    let width = 550 - margin.left - margin.right;
+    let height = 450 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
     let svg = d3.select("#kde-chart")
@@ -123,7 +123,7 @@ function drawKDE(data) {
         .append("option")
         .text(d => d) // text showed in the menu
         .attr("value", d => d) // corresponding value returned by the button
-        .property("selected", d => d === labels[1]);
+        .property("selected", d => d === labels[0]);
 
     // add the x Axis
     let x = d3.scaleLinear()
@@ -133,8 +133,8 @@ function drawKDE(data) {
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
-    let density1 = data[labels[1]]['original'];
-    let density2 = data[labels[1]]['new'];
+    let density1 = data[labels[0]]['original'];
+    let density2 = data[labels[0]]['new'];
 
     density1_array = density1.map(x=>x[1])
     density2_array = density2.map(x=>x[1])
@@ -259,8 +259,8 @@ function drawFeatureImportance(data) {
     let maxX = getMaxX(values);
     let maxY = getMaxY(values);
     let margin = {top: 10, right: 30, bottom: 30, left: 60};
-    let width = 460 - margin.left - margin.right;
-    let height = 400 - margin.top - margin.bottom;
+    let width = 550 - margin.left - margin.right;
+    let height = 450 - margin.top - margin.bottom;
 
     let svg = d3.select("#feat-imp-plot").append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -292,6 +292,7 @@ function drawFeatureImportance(data) {
         .style("border-radius", "5px")
         .style("padding", "10px")
         .style("font-size", "20px")
+        .style("text-align", "center")
 
     let tipMouseover = function(d) {
         var html  = d["feature"];

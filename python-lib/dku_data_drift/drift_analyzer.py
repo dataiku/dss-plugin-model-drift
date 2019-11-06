@@ -3,6 +3,7 @@ import logging
 import math
 import numpy as np
 import pandas as pd
+from scipy import stats
 from sklearn.neighbors import KernelDensity
 from sklearn.metrics import roc_auc_score, accuracy_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
@@ -48,7 +49,7 @@ class DriftAnalyzer:
         df = self._prepare_data_for_drift_model(new_test_df)
         preprocessor = Preprocessor(df, target=ORIGIN_COLUMN)
         train, test = preprocessor.get_processed_train_test()
-
+        
         if not_enough_data(df, min_len=min_num_row):
             raise ValueError('The processed dataset has less than {} rows, not enough to train drift model.'.format(min_num_row))
 
@@ -114,7 +115,8 @@ class DriftAnalyzer:
         for label in predictions.keys():
             kde_original = self._format_proba_density(predictions.get(label).get(FROM_ORIGINAL))
             kde_new = self._format_proba_density(predictions.get(label).get(FROM_NEW))
-            kde_dict[label] = {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}
+            cleaned_label = label.replace('proba_', 'Class ')
+            kde_dict[cleaned_label] = {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}
         return kde_dict
 
     def _format_proba_density(self, data, sample_weight=None):
@@ -144,7 +146,7 @@ class DriftAnalyzer:
         dfx['cumulative_importance'] = dfx['importance'].cumsum()
         dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
         return dfx_top.rename_axis('rank').reset_index().set_index('feature')
-
+    
     def _get_feature_importance_metrics(self, drift_features, drift_clf):
         original_feature_importance_df = self._model_accessor.get_feature_importance()
         drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf, cumulative_percentage_threshold=95)
@@ -157,17 +159,17 @@ class DriftAnalyzer:
             if drift_feat_rank is None:
                 logger.warn('Feature {} does not exist in the most important features of the drift model.'.format(feature))
             if original_feat_rank is None:
-                logger.warn('Feature {} does not exist in the most important features of the orignal model.'.format(feature))
+                logger.warn('Feature {} does not exist in the most important features of the orignal model.'.format(feature))            
             feature_importance_metrics.append({
-                'original_model': original_feat_rank if original_feat_rank else 0.01,
+                'original_model': original_feat_rank if original_feat_rank else 0.01, 
                  'drift_model': drift_feat_rank if drift_feat_rank else 0.01,
                  'feature': feature
             })
         return feature_importance_metrics
 
-    def _exponential_function(self, score):
+    def _exponential_function(self, score): 
         return round(np.exp(1 - 1/(np.power(score, 2.5))),2)
-
+    
     def _get_drift_accuracy(self, drift_clf):
         predicted_Y = drift_clf.predict(self._test_X)
         test_Y = pd.Series(self._test_Y)

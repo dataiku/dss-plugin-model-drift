@@ -38,10 +38,10 @@
         <div class="white-box">
             <h2>Model Information</h2>
 
-            <div style="margin-bottom: 32px; display: flex;">
-                <div class="fugacity_score_container"  style="float: left; margin-right: 1em;">
+            <div style="display: flex;">
+                <div class="fugacity_score_container" style="width: 550px;"> 
                     <h3>Fugacity</h3>
-                    <div id="fugacity-score"></div>
+                    <div id="fugacity-score" style="width: 550;"></div>
                 </div>
                 <div class="explanation" style="float: right; margin-top: 4em;"> <b>Fugacity</b> expresses the difference between the expected "ideal" data your model was trained on and the observed "real" data you are analyzing. We compare the proportion of samples predicted in each class when scoring on both the test and your input datasets.
                 </div>
@@ -50,7 +50,7 @@
             <div style="display: flex;">
                 <div class="kde_chart_container"  style="float: left;">
                     <h3>
-                        Density chart
+                        Predicted probability density chart
                         <select id="label-list"></select>
                     </h3>
                     <div id="kde-chart"></div>

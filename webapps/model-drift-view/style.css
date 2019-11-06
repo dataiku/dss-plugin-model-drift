@@ -40,3 +40,8 @@ h3 {
 .high-risk{
     color: red;
 }
+
+table{
+  width: 95% !important;
+  table-layout: fixed;
+}

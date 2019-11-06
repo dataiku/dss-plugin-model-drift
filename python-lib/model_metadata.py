@@ -32,7 +32,7 @@ def _get_model_info_handler(saved_model_version_id):
 
     with open(os.path.join(version_folder, "core_params.json")) as core_params_file:
         core_params = json.load(core_params_file)
-
+        
     try:
         return PredictionModelInformationHandler(split_desc, core_params, version_folder, version_folder)
     except Exception as e:
