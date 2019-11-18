@@ -23,11 +23,11 @@ function changeInputColor(input, value){
         }
         else if(value >= 0.1 && value <= 0.5){
             $(input).addClass('medium-risk');
-            $('#drift-explanation').append('a <b>medium risk of drift</b>.');
+            $('#inline-drift-score-explain').html('<b>medium data drift</b>.');
         }
         else{
             $(input).addClass('high-risk');
-            $('#drift-explanation').append('<b>high data drift</b>.');
+            $('#inline-drift-score-explain').html('<b>high data drift</b>.');
         }
     }
 
