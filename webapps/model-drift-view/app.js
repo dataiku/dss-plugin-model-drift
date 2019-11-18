@@ -19,7 +19,7 @@ function changeInputColor(input, value){
         $(input).removeClass();
         if (value < 0.1){
             $(input).addClass('low-risk');
-            $('#drift-explanation').append('<b>low data drift</b>.');
+            $('#inline-drift-score-explain').html('<b>low data drift</b>.');
         }
         else if(value >= 0.1 && value <= 0.5){
             $(input).addClass('medium-risk');
@@ -258,7 +258,7 @@ function drawFeatureImportance(data) {
 
     let maxX = getMaxX(values);
     let maxY = getMaxY(values);
-    let margin = {top: 10, right: 30, bottom: 30, left: 60};
+    let margin = {top: 10, right: 30, bottom: 30, left: 50};
     let width = 550 - margin.left - margin.right;
     let height = 450 - margin.top - margin.bottom;
 
