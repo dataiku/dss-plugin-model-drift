@@ -1,0 +1,19 @@
+{
+    "meta": {
+        "label": "Data drift analysis",
+        "description": "Get insights on the applicability of a model by exploring how a dataset of new data differs from the  evaluation (test) dataset.",
+        "icon": "icon-anchor"
+    },
+    "baseType": "STANDARD",
+    "hasBackend": "true",
+    "standardWebAppLibraries": ["jquery", "dataiku", "font_awesome"],
+    "virtualWebAppAffinity": "PREFER_VIRTUAL",
+    "roles": [
+        {
+            "type": "SAVED_MODEL",
+            "targetParamsKey": "modelId",
+            "pathParamsKey": "versionId"
+        }
+    ],
+    "params":[]
+}

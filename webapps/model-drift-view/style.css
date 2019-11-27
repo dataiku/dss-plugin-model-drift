@@ -1,0 +1,47 @@
+html {
+    background: #f2f2f2;
+}
+h3 {
+    margin-bottom: 13px !important;
+}
+.explanation {
+    margin-bottom: 24px;
+}
+#label-list{
+    padding-left: 17px;
+}
+#drift-score{
+    font-size: 50px;
+}
+.ml-table {
+    width: max-content;
+}
+.tooltip {
+    position: relative;
+    font-size: 8px;
+    width:  auto;
+    height: auto;
+    pointer-events: none;
+    background-color: white;
+}
+.fatal-error {
+    white-space: pre-wrap;
+    text-align: left !important;
+}
+
+.low-risk{
+    color: green;
+}
+
+.medium-risk{
+    color: orange;
+}
+
+.high-risk{
+    color: red;
+}
+
+table{
+  width: 95% !important;
+  table-layout: fixed;
+}
