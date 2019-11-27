@@ -1,2 +1,2 @@
-# dss-plugin-model-drift
-Model drift monitoring
+# Model drift monitoring
+This plugin adds a model view to analyze data drift. See the documentation on [our website](https://www.dataiku.com/dss/plugins/info/model-drift.html).
