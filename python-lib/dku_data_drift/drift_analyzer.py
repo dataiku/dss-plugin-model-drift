@@ -51,7 +51,7 @@ class DriftAnalyzer:
         train, test = preprocessor.get_processed_train_test()
         
         if not_enough_data(df, min_len=min_num_row):
-            raise ValueError('The processed dataset has less than {} rows, not enough to train drift model.'.format(min_num_row))
+            raise ValueError('Either the original test dataset or the new input dataset is too small, they each need to have at least {} rows'.format(min_num_row/2))
 
         train_X = train.drop(ORIGIN_COLUMN, axis=1)
         train_Y = np.array(train[ORIGIN_COLUMN])
