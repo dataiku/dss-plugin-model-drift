@@ -6,6 +6,7 @@
         "description": "Get insights on the applicability of a model by detecting when a new dataset differs from the one used for evaluation after training.",
         "author": "Dataiku (Léo Dreyfus-Schmidt & Du Phan)",
         "icon": "icon-anchor",
+    	"supportLevel": "TIER2_SUPPORT",
         "licenseInfo": "Apache Software License",
         "url": "https://www.dataiku.com/community/plugins/info/model-drift.html", //warning, update the webapp UI if you change
         "tags": ["Machine Learning"]
