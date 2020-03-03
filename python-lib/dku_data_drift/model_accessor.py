@@ -66,9 +66,13 @@ class ModelAccessor:
             return dfx_top.rename_axis('rank').reset_index().set_index('feature')
         else: # use surrogate model
             logger.info('Fitting surrogate model ...')
-            surrogate_model = SurrogateModel(self.get_predictor(), self.get_prediction_type())
+            surrogate_model = SurrogateModel(self.get_prediction_type())
             original_test_df = self.get_original_test_df()
-            surrogate_model.fit(original_test_df[self.get_selected_features()]) # we create the target automatically
+            predictions_on_original_test_df = self.get_predictor().predict(original_test_df)
+            surrogate_target = 'dku_predicted_label'
+            surrogate_df = original_test_df[self.get_selected_features()]
+            surrogate_df[surrogate_target] = predictions_on_original_test_df['prediction']
+            surrogate_model.fit(surrogate_df, surrogate_target)
             return surrogate_model.get_feature_importance()
 
 

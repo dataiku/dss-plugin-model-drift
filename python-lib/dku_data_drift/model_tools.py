@@ -83,8 +83,7 @@ def format_proba_density(data, sample_weight=None):
 
 class SurrogateModel:
 
-    def __init__(self, original_clf, prediction_type):
-        self.original_clf = original_clf
+    def __init__(self, prediction_type):
         self.feature_names = None
         self.target = None
         self.prediction_type = prediction_type
@@ -99,18 +98,13 @@ class SurrogateModel:
         if self.prediction_type not in ['CLASSIFICATION', 'REGRESSION']:
             raise ValueError('Prediction type must either be CLASSIFICATION or REGRESSION.')
 
-    def fit(self, df):
-        predicted_Y = self.original_clf.predict(df)
-        dku_target = 'dku_predicted_label'
-        df[dku_target] = predicted_Y['prediction']
-        preprocessor = Preprocessor(df, dku_target)
+    def fit(self, df, target):
+        preprocessor = Preprocessor(df, target)
         train, test = preprocessor.get_processed_train_test()
-        print(train.columns)
-        train_X = train.drop(dku_target, axis=1)
-        train_Y = train[dku_target]
+        train_X = train.drop(target, axis=1)
+        train_Y = train[target]
         self.clf.fit(train_X, train_Y)
         self.feature_names = train_X.columns
-        self.target = dku_target
 
     def get_feature_importance(self, cumulative_percentage_threshold=95):
         feature_importance = []
