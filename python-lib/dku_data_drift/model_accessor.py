@@ -9,6 +9,14 @@ class ModelAccessor:
     def __init__(self, model_handler=None):
         self.model_handler = model_handler
 
+    def get_prediction_type(self):
+        if 'CLASSIFICATION' in self.model_handler.get_prediction_type():
+            return 'CLASSIFICATION'
+        elif 'REGRESSION' in self.model_handler.get_prediction_type():
+            return 'REGRESSION'
+        else:
+            return 'CLUSTERING'
+
     def check(self):
         if self.model_handler is None:
             raise ValueError('model_handler object is not specified')
@@ -17,7 +25,11 @@ class ModelAccessor:
         return self.model_handler.get_target_variable()
 
     def get_original_test_df(self):
-        return self.model_handler.get_test_df()[0]
+        try:
+            return self.model_handler.get_test_df()[0]
+        except Exception as e:
+            logger.warning('Can not retrieve original test set: {}. The plugin will take the whole original dataset.'.format(e))
+            return self.model_handler.get_full_df()[0]
 
     def get_per_feature(self):
         return self.model_handler.get_per_feature()
@@ -26,6 +38,12 @@ class ModelAccessor:
         return self.model_handler.get_predictor()
 
     def get_feature_importance(self, cumulative_percentage_threshold=80):
+        """
+        TODO: for algorithms without feature importance, use surrogate model -> new object ?
+
+        :param cumulative_percentage_threshold:
+        :return:
+        """
         predictor = self.get_predictor()
         clf = predictor._clf
         feature_importance = []

@@ -1,6 +1,8 @@
 # coding: utf-8
 import logging
 import numpy as np
+import math
+from sklearn.neighbors import KernelDensity
 from sklearn.metrics import *
 
 logger = logging.getLogger(__name__)
@@ -59,3 +61,18 @@ def mroc_auc_score(y_true, y_predictions, sample_weight=None):
         for i in classes
         for j in classes
         if i != j)
+
+
+def format_proba_density(data, sample_weight=None):
+    data = np.array(data)
+    if len(data) == 0:
+        return []
+    h = 1.06 * np.std(data) * math.pow(len(data), -.2)
+    if h <= 0:
+        h = 0.06
+    if len(np.unique(data)) == 1:
+        sample_weight = None
+    X_plot = np.linspace(0, 100, 500, dtype=int)[:, np.newaxis]
+    kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
+    Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
+    return list(zip(X_plot.ravel(), Y_plot))

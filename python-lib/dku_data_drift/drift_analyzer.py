@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
-import math
 import numpy as np
 import pandas as pd
-from scipy import stats
-from sklearn.neighbors import KernelDensity
 from sklearn.metrics import roc_auc_score, accuracy_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 from dku_data_drift.preprocessing import Preprocessor
 from dku_data_drift.dataframe_helpers import not_enough_data
+from dku_data_drift.model_tools import format_proba_density
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +19,7 @@ MIN_NUM_ROWS = 1000 # heuristic choice
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
 CUMULATIVE_PERCENTAGE_THRESHOLD = 90
 PREDICTION_TEST_SIZE = 10000
+
 
 class DriftAnalyzer:
 
@@ -33,9 +32,14 @@ class DriftAnalyzer:
         self.check()
 
     def check(self):
+        if self._model_accessor.get_prediction_type() == 'CLUSTERING':
+            raise ValueError('Clustering model is not supported.')
+
+        """ 
         predictor = self._model_accessor.get_predictor()
         if not self._algorithm_is_supported(predictor):
             raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(predictor._clf.__module__))
+        """
 
     def train_drift_model(self, new_test_df, min_num_row=MIN_NUM_ROWS):
         """
@@ -71,23 +75,63 @@ class DriftAnalyzer:
             return {}
 
         logger.info("Computing drift metrics ...")
-        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf)
         drift_accuracy = self._get_drift_accuracy(drift_clf)
-        prediction_dict = self._get_predictions(limit=PREDICTION_TEST_SIZE)
+        feature_importance_metrics = self._get_feature_importance_metrics(drift_features, drift_clf)
 
+        if self._model_accessor.get_prediction_type() == 'REGRESSION':
+            kde_dict = self._get_regression_prediction_metrics()
+            fugacity_metrics = {}
+            label_list = []
+        else:
+            kde_dict, fugacity_metrics, label_list = self._get_classification_prediction_metrics()
+
+        return {'type': self._model_accessor.get_prediction_type(),
+                'feature_importance': feature_importance_metrics,
+                'drift_accuracy': drift_accuracy,
+                'kde': kde_dict,
+                'fugacity': fugacity_metrics,
+                'label_list': label_list}
+
+    def _get_classification_prediction_metrics(self):
+
+        prediction_dict = self._get_predictions(limit=PREDICTION_TEST_SIZE)
         predictions_by_class = {}
         for label in prediction_dict.get(FROM_ORIGINAL).columns:
             if 'proba_' in label:
                 original_proba = np.around(prediction_dict.get(FROM_ORIGINAL)[label].values, 2).tolist()
                 new_proba = np.around(prediction_dict.get(FROM_NEW)[label].values, 2).tolist()
                 predictions_by_class[label] = {FROM_ORIGINAL: original_proba, FROM_NEW: new_proba}
-        kde_dict = self._get_kde(predictions_by_class)
+        kde_dict = {}
+        for label in predictions_by_class.keys():
+            kde_original = format_proba_density(predictions_by_class.get(label).get(FROM_ORIGINAL))
+            kde_new = format_proba_density(predictions_by_class.get(label).get(FROM_NEW))
+            cleaned_label = label.replace('proba_', 'Class ')
+            kde_dict[cleaned_label] = {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}
         fugacity_metrics = self._get_fugacity(prediction_dict)
         label_list = [label for label in fugacity_metrics[0].keys() if label != 'source']
-        return {'feature_importance': feature_importance_metrics, 'drift_accuracy': drift_accuracy, 'kde': kde_dict,
-                'fugacity': fugacity_metrics, 'label_list': label_list}
+
+        return kde_dict, fugacity_metrics, label_list
+
+
+    def _get_regression_prediction_metrics(self):
+
+        prediction_dict = self._get_predictions(limit=PREDICTION_TEST_SIZE)
+        kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values)
+        kde_new = format_proba_density(prediction_dict.get(FROM_NEW).values)
+
+        kde_dict= {'Prediction': {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}} # to have the same format as in classif case
+
+        return kde_dict
+
 
     def _prepare_data_for_drift_model(self, new_test_df):
+        """
+        Sampling function so that original test set and new test set has the same ratio in the drift training set
+        For now only do top n sampling
+
+        :param new_test_df:
+        :return:
+        """
         target = self._model_accessor.get_target_variable()
         original_df = self._original_test_df.drop(target, axis=1)
         if target in new_test_df:
@@ -110,30 +154,6 @@ class DriftAnalyzer:
 
         return df.loc[:, selected_features]
 
-    def _get_kde(self, predictions):
-        kde_dict = {}
-        for label in predictions.keys():
-            kde_original = self._format_proba_density(predictions.get(label).get(FROM_ORIGINAL))
-            kde_new = self._format_proba_density(predictions.get(label).get(FROM_NEW))
-            cleaned_label = label.replace('proba_', 'Class ')
-            kde_dict[cleaned_label] = {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}
-        return kde_dict
-
-    def _format_proba_density(self, data, sample_weight=None):
-        data = np.array(data)
-        if len(data) == 0:
-            return []
-        h = 1.06 * np.std(data) * math.pow(len(data), -.2)
-        if h <= 0:
-            h = 0.06
-        if len(np.unique(data)) == 1:
-            sample_weight = None
-        X_plot = np.linspace(0, 100, 500, dtype=int)[:, np.newaxis]
-        kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
-        Y_plot = np.exp(kde.score_samples(X_plot))
-        Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
-        return list(zip(X_plot.ravel(), Y_plot))
-
     def _get_drift_feature_importance(self, drift_features, drift_clf, cumulative_percentage_threshold=95):
         feature_importance = []
         for feature_name, feat_importance in zip(drift_features, drift_clf.feature_importances_):
@@ -148,6 +168,7 @@ class DriftAnalyzer:
         return dfx_top.rename_axis('rank').reset_index().set_index('feature')
     
     def _get_feature_importance_metrics(self, drift_features, drift_clf):
+
         original_feature_importance_df = self._model_accessor.get_feature_importance()
         drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf, cumulative_percentage_threshold=95)
         topn_drift_feature = drift_feature_importance_df.to_dict()['importance']
@@ -182,15 +203,24 @@ class DriftAnalyzer:
         """
         original_prediction_df = self._model_accessor.predict(self._original_test_df[:limit])
         new_prediciton_df = self._model_accessor.predict(self._new_test_df[:limit])
-        proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col]
 
-        # move to % scale, it plays nicer with d3 ...
-        original_prediction_df.loc[:, proba_columns] = np.around(original_prediction_df.loc[:, proba_columns] * 100)
-        new_prediciton_df.loc[:, proba_columns] = np.around(new_prediciton_df.loc[:, proba_columns] * 100)
+        if self._model_accessor.get_prediction_type() == 'CLASSIFICATION':
+
+            proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col]
+
+            # move to % scale, it plays nicer with d3 ...
+            original_prediction_df.loc[:, proba_columns] = np.around(original_prediction_df.loc[:, proba_columns] * 100)
+            new_prediciton_df.loc[:, proba_columns] = np.around(new_prediciton_df.loc[:, proba_columns] * 100)
 
         return {FROM_ORIGINAL: original_prediction_df, FROM_NEW: new_prediciton_df}
 
     def _get_fugacity(self, prediction_dict):
+        """
+        For classification only, this compute the ratio of each predicted label
+
+        :param prediction_dict:
+        :return:
+        """
         original_prediction_df = prediction_dict.get(FROM_ORIGINAL)
         new_prediciton_df = prediction_dict.get(FROM_NEW)
 
