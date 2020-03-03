@@ -2,8 +2,11 @@
 import logging
 import numpy as np
 import math
+import pandas as pd
 from sklearn.neighbors import KernelDensity
 from sklearn.metrics import *
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from dku_data_drift.preprocessing import Preprocessor
 
 logger = logging.getLogger(__name__)
 
@@ -76,3 +79,49 @@ def format_proba_density(data, sample_weight=None):
     kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
     Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
     return list(zip(X_plot.ravel(), Y_plot))
+
+
+class SurrogateModel:
+
+    def __init__(self, original_clf, prediction_type):
+        self.original_clf = original_clf
+        self.feature_names = None
+        self.target = None
+        self.prediction_type = prediction_type
+        if prediction_type == 'CLASSIFICATION':
+            self.clf = RandomForestClassifier()
+        else:
+            self.clf = RandomForestRegressor()
+
+        self.check()
+
+    def check(self):
+        if self.prediction_type not in ['CLASSIFICATION', 'REGRESSION']:
+            raise ValueError('Prediction type must either be CLASSIFICATION or REGRESSION.')
+
+    def fit(self, df):
+        predicted_Y = self.original_clf.predict(df)
+        dku_target = 'dku_predicted_label'
+        df[dku_target] = predicted_Y['prediction']
+        preprocessor = Preprocessor(df, dku_target)
+        train, test = preprocessor.get_processed_train_test()
+        print(train.columns)
+        train_X = train.drop(dku_target, axis=1)
+        train_Y = train[dku_target]
+        self.clf.fit(train_X, train_Y)
+        self.feature_names = train_X.columns
+        self.target = dku_target
+
+    def get_feature_importance(self, cumulative_percentage_threshold=95):
+        feature_importance = []
+        feature_importances = self.clf.feature_importances_
+        for feature_name, feat_importance in zip(self.feature_names, feature_importances):
+            feature_importance.append({
+                'feature': feature_name,
+                'importance': 100 * feat_importance / sum(feature_importances)
+            })
+
+        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
+        dfx['cumulative_importance'] = dfx['importance'].cumsum()
+        dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
+        return dfx_top.rename_axis('rank').reset_index().set_index('feature')

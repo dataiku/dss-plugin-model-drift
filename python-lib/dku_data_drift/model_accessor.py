@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
+from sklearn.tree import DecisionTreeClassifier
+from dku_data_drift.model_tools import SurrogateModel
 import logging
 
-import pandas as pd
-
 logger = logging.getLogger(__name__)
+
+ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
 
 class ModelAccessor:
     def __init__(self, model_handler=None):
@@ -44,21 +48,29 @@ class ModelAccessor:
         :param cumulative_percentage_threshold:
         :return:
         """
-        predictor = self.get_predictor()
-        clf = predictor._clf
-        feature_importance = []
-        feature_importances = clf.feature_importances_
-        feature_names = predictor.get_features()
-        for feature_name, feat_importance in zip(feature_names, feature_importances):
-            feature_importance.append({
-                'feature': feature_name,
-                'importance': 100*feat_importance/sum(feature_importances)
-            })
-        
-        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
-        dfx['cumulative_importance'] = dfx['importance'].cumsum()
-        dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
-        return dfx_top.rename_axis('rank').reset_index().set_index('feature')
+        if self._algorithm_is_tree_based():
+            predictor = self.get_predictor()
+            clf = predictor._clf
+            feature_importance = []
+            feature_importances = clf.feature_importances_
+            feature_names = predictor.get_features()
+            for feature_name, feat_importance in zip(feature_names, feature_importances):
+                feature_importance.append({
+                    'feature': feature_name,
+                    'importance': 100*feat_importance/sum(feature_importances)
+                })
+
+            dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
+            dfx['cumulative_importance'] = dfx['importance'].cumsum()
+            dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
+            return dfx_top.rename_axis('rank').reset_index().set_index('feature')
+        else: # use surrogate model
+            logger.info('Fitting surrogate model ...')
+            surrogate_model = SurrogateModel(self.get_predictor(), self.get_prediction_type())
+            original_test_df = self.get_original_test_df()
+            surrogate_model.fit(original_test_df[self.get_selected_features()]) # we create the target automatically
+            return surrogate_model.get_feature_importance()
+
 
     def get_selected_features(self):
         selected_features = []
@@ -69,3 +81,14 @@ class ModelAccessor:
 
     def predict(self, df):
         return self.get_predictor().predict(df)
+
+
+    def _algorithm_is_tree_based(self):
+        predictor = self.get_predictor()
+        algo = predictor._clf
+        for algorithm in ALGORITHMS_WITH_VARIABLE_IMPORTANCE:
+            if isinstance(algo, algorithm):
+                return True
+            elif predictor.params.modeling_params.get('algorithm') == 'XGBOOST_CLASSIFICATION':
+                return True
+        return False
