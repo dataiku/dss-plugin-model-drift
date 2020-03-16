@@ -23,7 +23,7 @@ CUMULATIVE_PERCENTAGE_THRESHOLD = 90
 PREDICTION_TEST_SIZE = 10000
 
 # TODO: Remove this path after usage
-OBJECT_PATH = "/Users/thibaultdesfontaines/devenv/dss-home/plugins/dev/model-drift/python-tests/objects/"
+OBJECT_PATH = "/interactive-sandbox/objects/"
 
 
 class DriftAnalyzer:
