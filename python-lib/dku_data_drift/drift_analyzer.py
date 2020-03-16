@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import joblib
 import logging
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ from dku_data_drift.dataframe_helpers import not_enough_data
 from dku_data_drift.model_tools import format_proba_density
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='Model Drift Plugin | %(levelname)s - %(message)s')
 
 ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
 FROM_ORIGINAL = 'original'
@@ -20,26 +22,31 @@ ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingC
 CUMULATIVE_PERCENTAGE_THRESHOLD = 90
 PREDICTION_TEST_SIZE = 10000
 
+# TODO: Remove this path after usage
+OBJECT_PATH = "/Users/thibaultdesfontaines/devenv/dss-home/plugins/dev/model-drift/python-tests/objects/"
+
 
 class DriftAnalyzer:
 
     def __init__(self, model_accessor):
         self._model_accessor = model_accessor
+        joblib.dump(self._model_accessor, OBJECT_PATH+"model_accessor")
         self._original_test_df = model_accessor.get_original_test_df()
+        joblib.dump(self._original_test_df, OBJECT_PATH+"original_test_df")
         self._new_test_df = None
         self._test_X = None
         self._test_Y = None
         self.check()
 
     def check(self):
+        """
+            Check the type of the model.
+        """
         if self._model_accessor.get_prediction_type() == 'CLUSTERING':
             raise ValueError('Clustering model is not supported.')
-
-        """ 
-        predictor = self._model_accessor.get_predictor()
-        if not self._algorithm_is_supported(predictor):
-            raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(predictor._clf.__module__))
-        """
+        # predictor = self._model_accessor.get_predictor()
+        # if not self._algorithm_is_supported(predictor):
+        #     raise ValueError('{} is not a supported algorithm. Please choose one that has feature importances (tree-based models).'.format(predictor._clf.__module__))
 
     def train_drift_model(self, new_test_df, min_num_row=MIN_NUM_ROWS):
         """
@@ -57,12 +64,14 @@ class DriftAnalyzer:
         if not_enough_data(df, min_len=min_num_row):
             raise ValueError('Either the original test dataset or the new input dataset is too small, they each need to have at least {} rows'.format(min_num_row/2))
 
+        # Combine the two datasets rows that are in the dataset
         train_X = train.drop(ORIGIN_COLUMN, axis=1)
         train_Y = np.array(train[ORIGIN_COLUMN])
         self._test_X = test.drop(ORIGIN_COLUMN, axis=1)  # we will use them later when compute metrics
         self._test_Y = np.array(test[ORIGIN_COLUMN])
         self._new_test_df = new_test_df
 
+        # Fit a random classifier to the data
         clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
         logger.info("Fitting the drift model...")
         clf.fit(train_X, train_Y)
