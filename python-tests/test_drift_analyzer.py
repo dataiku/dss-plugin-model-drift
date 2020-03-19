@@ -11,6 +11,7 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
 import pytest
+
 ## Add stuff to the path to enable exec outside of DSS
 plugin_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(plugin_root, 'python-lib'))

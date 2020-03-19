@@ -11,6 +11,8 @@ from dku_data_drift.preprocessing import Preprocessor
 from dku_data_drift.dataframe_helpers import not_enough_data
 from dku_data_drift.model_tools import format_proba_density
 
+from dev_helper import OBJECT_PATH, DATA_PATH
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='Model Drift Plugin | %(levelname)s - %(message)s')
 
@@ -22,17 +24,12 @@ ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingC
 CUMULATIVE_PERCENTAGE_THRESHOLD = 90
 PREDICTION_TEST_SIZE = 10000
 
-# TODO: Remove this path after usage
-OBJECT_PATH = "/interactive-sandbox/objects/"
-
 
 class DriftAnalyzer:
 
     def __init__(self, model_accessor):
         self._model_accessor = model_accessor
-        joblib.dump(self._model_accessor, OBJECT_PATH+"model_accessor")
         self._original_test_df = model_accessor.get_original_test_df()
-        joblib.dump(self._original_test_df, OBJECT_PATH+"original_test_df")
         self._new_test_df = None
         self._test_X = None
         self._test_Y = None
