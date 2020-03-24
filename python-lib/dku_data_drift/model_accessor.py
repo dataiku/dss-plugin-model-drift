@@ -8,6 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
+MAX_NUM_ROW = 100000
 
 class ModelAccessor:
     def __init__(self, model_handler=None):
@@ -28,12 +29,12 @@ class ModelAccessor:
     def get_target_variable(self):
         return self.model_handler.get_target_variable()
 
-    def get_original_test_df(self):
+    def get_original_test_df(self, limit=MAX_NUM_ROW):
         try:
-            return self.model_handler.get_test_df()[0]
+            return self.model_handler.get_test_df()[0][:limit]
         except Exception as e:
             logger.warning('Can not retrieve original test set: {}. The plugin will take the whole original dataset.'.format(e))
-            return self.model_handler.get_full_df()[0]
+            return self.model_handler.get_full_df()[0][:limit]
 
     def get_per_feature(self):
         return self.model_handler.get_per_feature()
@@ -41,10 +42,8 @@ class ModelAccessor:
     def get_predictor(self):
         return self.model_handler.get_predictor()
 
-    def get_feature_importance(self, cumulative_percentage_threshold=80):
+    def get_feature_importance(self, cumulative_percentage_threshold=95):
         """
-        TODO: for algorithms without feature importance, use surrogate model -> new object ?
-
         :param cumulative_percentage_threshold:
         :return:
         """
