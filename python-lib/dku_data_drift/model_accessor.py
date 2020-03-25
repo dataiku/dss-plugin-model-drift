@@ -14,6 +14,8 @@ from dev_helper import OBJECT_PATH, DATA_PATH
 logger = logging.getLogger(__name__)
 
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
+MAX_NUM_ROW = 100000
+SURROGATE_TARGET = "_dku_predicted_label_"
 
 
 class ModelAccessor:
@@ -46,12 +48,12 @@ class ModelAccessor:
         """
         return self.model_handler.get_target_variable()
 
-    def get_original_test_df(self):
+    def get_original_test_df(self, limit=MAX_NUM_ROW):
         try:
-            return self.model_handler.get_test_df()[0]
+            return self.model_handler.get_test_df()[0][:limit]
         except Exception as e:
             logger.warning('Can not retrieve original test set: {}. The plugin will take the whole original dataset.'.format(e))
-            return self.model_handler.get_full_df()[0]
+            return self.model_handler.get_full_df()[0][:limit]
 
     def get_per_feature(self):
         return self.model_handler.get_per_feature()
@@ -59,10 +61,8 @@ class ModelAccessor:
     def get_predictor(self):
         return self.model_handler.get_predictor()
 
-    def get_feature_importance(self, cumulative_percentage_threshold=80):
+    def get_feature_importance(self, cumulative_percentage_threshold=95):
         """
-        TODO: for algorithms without feature importance, use surrogate model -> new object ?
-
         :param cumulative_percentage_threshold:
         :return:
         """
@@ -87,10 +87,9 @@ class ModelAccessor:
             surrogate_model = SurrogateModel(self.get_prediction_type())
             original_test_df = self.get_original_test_df()
             predictions_on_original_test_df = self.get_predictor().predict(original_test_df)
-            surrogate_target = 'dku_predicted_label'
             surrogate_df = original_test_df[self.get_selected_features()]
-            surrogate_df[surrogate_target] = predictions_on_original_test_df['prediction']
-            surrogate_model.fit(surrogate_df, surrogate_target)
+            surrogate_df[SURROGATE_TARGET] = predictions_on_original_test_df['prediction']
+            surrogate_model.fit(surrogate_df, SURROGATE_TARGET)
             return surrogate_model.get_feature_importance()
 
     def get_selected_features(self):
