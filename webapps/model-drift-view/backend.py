@@ -8,7 +8,6 @@ from dku_data_drift import DriftAnalyzer, ModelAccessor
 from model_metadata import get_model_handler
 logger = logging.getLogger(__name__)
 
-
 def convert(o):
     if isinstance(o, np.int64): return int(o)  
     raise TypeError
@@ -33,9 +32,9 @@ def get_drift_metrics():
         model_handler = get_model_handler(model, version_id=version_id)
         model_accessor = ModelAccessor(model_handler)
 
-        drifter = DriftAnalyzer(model_accessor)
-        drift_features, drift_clf = drifter.train_drift_model(new_test_df)
-        return json.dumps(drifter.compute_drift_metrics(drift_features, drift_clf), allow_nan=False, default=convert)
+        drifter = DriftAnalyzer()
+        drifter.fit(new_test_df, model_accessor=model_accessor)
+        return json.dumps(drifter.get_drift_metrics_for_webapp(), allow_nan=False, default=convert)
     except:
         logger.error(traceback.format_exc())
         return traceback.format_exc(), 500
