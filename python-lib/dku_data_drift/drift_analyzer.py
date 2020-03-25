@@ -51,9 +51,6 @@ class DriftAnalyzer:
         """
         logger.info("Preparing the drift model...")
 
-        if target is not None and target not in new_df:
-            raise ValueError('The new dataframe does not contain target "{}".'.format(target))
-
         if model_accessor is not None and original_df is not None:
             raise ValueError('model_accessor and original_df can not be defined at the same time. Please choose one of them.')
 
@@ -86,6 +83,13 @@ class DriftAnalyzer:
 
     def prepare_data_when_having_target(self, new_df, original_df):
         logger.info('Prepare data with target for drift model')
+
+        if self.target not in new_df:
+            raise ValueError('The new dataset does not contain target "{}".'.format(self.target))
+
+        if self.target not in original_df:
+            raise ValueError('The original dataset does not contain target "{}".'.format(self.target))
+
         self._new_df = new_df
         self._original_df = original_df
         new_df_without_target = new_df.drop(self.target, axis=1)
@@ -99,9 +103,7 @@ class DriftAnalyzer:
 
     def get_drift_metrics_for_webapp(self):
         """
-        For the model view webapp, return format easy to plot viz
-
-        :return:
+        Return a dict of metrics with a format to be easily used in frontend
         """
 
         if self.features_in_drift_model is None or self.drift_clf is None:
