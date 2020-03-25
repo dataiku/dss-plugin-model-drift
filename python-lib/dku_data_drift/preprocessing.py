@@ -1,4 +1,6 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import os
 import sys
 import random
@@ -11,6 +13,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 EPOCH = datetime(1900, 1, 1)
+
 
 class Preprocessor:
 

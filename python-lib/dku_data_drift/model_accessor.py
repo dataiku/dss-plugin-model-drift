@@ -1,19 +1,31 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 from sklearn.tree import DecisionTreeClassifier
 from dku_data_drift.model_tools import SurrogateModel
 import logging
 
+# TODO: remove
+import joblib
+from dev_helper import OBJECT_PATH, DATA_PATH
+
 logger = logging.getLogger(__name__)
 
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
 
+
 class ModelAccessor:
+
     def __init__(self, model_handler=None):
         self.model_handler = model_handler
+        joblib.dump(self.model_handler, OBJECT_PATH+"model_handler")
 
     def get_prediction_type(self):
+        """
+        Wrap the prediction type accessor of the model
+        """
         if 'CLASSIFICATION' in self.model_handler.get_prediction_type():
             return 'CLASSIFICATION'
         elif 'REGRESSION' in self.model_handler.get_prediction_type():
@@ -22,10 +34,16 @@ class ModelAccessor:
             return 'CLUSTERING'
 
     def check(self):
+        """
+        Check missing model_handler
+        """
         if self.model_handler is None:
             raise ValueError('model_handler object is not specified')
             
     def get_target_variable(self):
+        """
+        Return the name of the target variable
+        """
         return self.model_handler.get_target_variable()
 
     def get_original_test_df(self):
@@ -75,7 +93,6 @@ class ModelAccessor:
             surrogate_model.fit(surrogate_df, surrogate_target)
             return surrogate_model.get_feature_importance()
 
-
     def get_selected_features(self):
         selected_features = []
         for feat, feat_info in self.get_per_feature().items():
@@ -85,7 +102,6 @@ class ModelAccessor:
 
     def predict(self, df):
         return self.get_predictor().predict(df)
-
 
     def _algorithm_is_tree_based(self):
         predictor = self.get_predictor()

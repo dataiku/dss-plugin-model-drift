@@ -19,8 +19,6 @@ sys.path.append(os.path.join(plugin_root, 'python-lib'))
 
 from dku_data_drift import DriftAnalyzer, ModelAccessor
 
-
-
 RANDOM_SEED = 65537 # Fermat prime number <3
 TEST_RATIO = 0.3 # change this will affect model's prediction result
 
@@ -34,6 +32,7 @@ def load_data():
 
 
 class ScikitPredictor:
+
     def __init__(self, df, feature_names, target):
         self.feature_names = feature_names
         self._clf = RandomForestClassifier(n_estimators=10, random_state=RANDOM_SEED).fit(df[feature_names], df[target])
