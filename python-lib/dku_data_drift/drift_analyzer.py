@@ -23,12 +23,12 @@ PREDICTION_TEST_SIZE = 10000
 class DriftAnalyzer:
 
     def __init__(self, prediction_type=None, min_num_row=MIN_NUM_ROWS):
-        self.clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
-        self.min_num_row = min_num_row
         self.prediction_type = prediction_type
+        self.min_num_row = min_num_row
+        self.drift_clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
 
-        self._original_test_df = None
-        self._new_test_df = None
+        self._original_df = None
+        self._new_df = None
         self._drift_test_X = None
         self._drift_test_Y = None
         self._model_accessor = None
@@ -42,7 +42,7 @@ class DriftAnalyzer:
         #    raise ValueError('Clustering model is not supported.')
         return None
 
-    def fit(self, new_test_df, model_accessor=None, original_test_df=None, target=None):
+    def fit(self, new_df, model_accessor=None, original_df=None, target=None):
         """
         Trains a classifier that attempts to discriminate between rows from the provided dataframe and
         rows from the dataset originally used to evaluate the model
@@ -51,59 +51,60 @@ class DriftAnalyzer:
         """
         logger.info("Preparing the drift model...")
 
-        if target is not None and target not in new_test_df:
-            raise ValueError('new_test_df does not contain target {}.'.format(target))
+        if target is not None and target not in new_df:
+            raise ValueError('The new dataframe does not contain target "{}".'.format(target))
 
-        if model_accessor is not None and original_test_df is None and target is None:
+        if model_accessor is not None and original_df is not None:
+            raise ValueError('model_accessor and original_df can not be defined at the same time. Please choose one of them.')
+
+        if model_accessor is not None and original_df is None and target is None:
             self._model_accessor = model_accessor
             self.has_predictions = True
             self.target = self._model_accessor.get_target_variable()
-            original_test_df = self._model_accessor.get_original_test_df()
-            df = self.prepare_data_when_having_target(new_test_df, original_test_df)
-        elif model_accessor is None and original_test_df is not None and target is not None:
+            self.prediction_type = self._model_accessor.get_prediction_type()
+            original_df = self._model_accessor.get_original_test_df()
+            df = self.prepare_data_when_having_target(new_df, original_df)
+        elif model_accessor is None and original_df is not None and target is not None:
             self.has_predictions = True
             self.target = target
-            df = self.prepare_data_when_having_target(new_test_df, original_test_df)
-        elif model_accessor is None and original_test_df is not None and target is None:
-            df = self.prepare_data_when_without_target(new_test_df, original_test_df)
+            df = self.prepare_data_when_having_target(new_df, original_df)
+        elif model_accessor is None and original_df is not None and target is None:
+            df = self.prepare_data_when_without_target(new_df, original_df)
         else:
-            raise NotImplementedError('Dommage')
+            raise NotImplementedError('You need to precise either a model accessor or an original df.')
 
         preprocessor = Preprocessor(df, target=ORIGIN_COLUMN)
         train, test = preprocessor.get_processed_train_test()
-        train_X = train.drop(ORIGIN_COLUMN, axis=1)
-        train_Y = np.array(train[ORIGIN_COLUMN])
+        drift_train_X = train.drop(ORIGIN_COLUMN, axis=1)
+        drift_train_Y = np.array(train[ORIGIN_COLUMN])
         self._drift_test_X = test.drop(ORIGIN_COLUMN, axis=1)  # we will use them later when compute metrics
         self._drift_test_Y = np.array(test[ORIGIN_COLUMN])
-        self.features_in_drift_model = train_X.columns
+        self.features_in_drift_model = drift_train_X.columns
 
         logger.info("Fitting the drift model...")
-        self.clf.fit(train_X, train_Y)
+        self.drift_clf.fit(drift_train_X, drift_train_Y)
 
-    def prepare_data_when_having_target(self, new_test_df, original_test_df):
-
-        print('------ FIT DATASET WITH TARGET')
-
-        self._new_test_df = new_test_df
-        self._original_test_df = original_test_df
-
-        new_test_df_without_target = new_test_df.drop(self.target, axis=1)
-        original_test_df_without_target = original_test_df.drop(self.target, axis=1)
-        return self._prepare_data_for_drift_model(new_test_df_without_target, original_test_df_without_target)
+    def prepare_data_when_having_target(self, new_df, original_df):
+        logger.info('Prepare data with target for drift model')
+        self._new_df = new_df
+        self._original_df = original_df
+        new_df_without_target = new_df.drop(self.target, axis=1)
+        original_df_without_target = original_df.drop(self.target, axis=1)
+        return self._prepare_data_for_drift_model(new_df_without_target, original_df_without_target)
 
 
-    def prepare_data_when_without_target(self, new_test_df, original_test_df):
-        print('------- FIT DATASET WITHOUT TARGET')
-        return self._prepare_data_for_drift_model(new_test_df, original_test_df)
+    def prepare_data_when_without_target(self, new_df, original_df):
+        logger.info('Prepare data without target for drift model')
+        return self._prepare_data_for_drift_model(new_df, original_df)
 
-    def _compute_drift_metrics(self):
+    def get_drift_metrics_for_webapp(self):
         """
         For the model view webapp, return format easy to plot viz
 
         :return:
         """
 
-        if self.features_in_drift_model is None or self.clf is None:
+        if self.features_in_drift_model is None or self.drift_clf is None:
             logger.warning('drift_features and drift_clf must be defined')
             return {}
 
@@ -111,25 +112,21 @@ class DriftAnalyzer:
         drift_accuracy = self.get_drift_score()
         feature_importance_metrics = self._get_feature_importance_metrics()
 
-        if self.has_predictions:
-            if self.prediction_type == 'REGRESSION':
-                kde_dict = self._get_regression_prediction_metrics()
-                fugacity_metrics = {}
-                label_list = []
-            elif self.prediction_type == 'CLASSIFICATION':
-                kde_dict, fugacity_metrics, label_list = self._get_classification_prediction_metrics()
-            else:
-                raise ValueError('Prediction type not defined.')
-
-            return {'type': self.prediction_type,
-                    'feature_importance': feature_importance_metrics,
-                    'drift_accuracy': drift_accuracy,
-                    'kde': kde_dict,
-                    'fugacity': fugacity_metrics,
-                    'label_list': label_list}
+        if self.prediction_type == 'REGRESSION':
+            kde_dict = self._get_regression_prediction_metrics()
+            fugacity_metrics = {}
+            label_list = []
+        elif self.prediction_type == 'CLASSIFICATION':
+            kde_dict, fugacity_metrics, label_list = self._get_classification_prediction_metrics()
         else:
-            return {'drift_accuracy': drift_accuracy,
-                    'feature_importance': feature_importance_metrics}
+            raise ValueError('Prediction type not defined.')
+
+        return {'type': self.prediction_type,
+                'feature_importance': feature_importance_metrics,
+                'drift_accuracy': drift_accuracy,
+                'kde': kde_dict,
+                'fugacity': fugacity_metrics,
+                'label_list': label_list}
 
     def _get_classification_prediction_metrics(self):
 
@@ -185,17 +182,17 @@ class DriftAnalyzer:
         """
 
         if not_enough_data(new_df, min_len=self.min_num_row):
-            raise ValueError('The new test dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(new_df),self.min_num_row))
+            raise ValueError('The new dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(new_df),self.min_num_row))
 
         if not_enough_data(original_df, min_len=self.min_num_row):
-            raise ValueError('The original test dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(original_df),self.min_num_row))
+            raise ValueError('The original dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(original_df),self.min_num_row))
 
         original_df[ORIGIN_COLUMN] = FROM_ORIGINAL
         new_df[ORIGIN_COLUMN] = FROM_NEW
 
         logger.info("Rebalancing data:")
         number_of_rows = min(original_df.shape[0], new_df.shape[0], MAX_NUM_ROW)
-        logger.info(" - original test dataset had %s rows, new dataframe has %s. Selecting %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
+        logger.info(" - original dataset had %s rows, new dataset has %s. Selecting the first %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
 
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
 
@@ -206,16 +203,16 @@ class DriftAnalyzer:
 
         missing_features = set(selected_features) - set(new_df.columns)
         if len(missing_features) > 0:
-            raise ValueError('Missing columns in the new test set: {}'.format(', '.join(list(missing_features))))
+            raise ValueError('Missing column(s) in the new dataframe: {}'.format(', '.join(list(missing_features))))
 
         return df.loc[:, selected_features]
 
     def get_drift_feature_importance(self, cumulative_percentage_threshold=95):
         feature_importance = []
-        for feature_name, feat_importance in zip(self.features_in_drift_model, self.clf.feature_importances_):
+        for feature_name, feat_importance in zip(self.features_in_drift_model, self.drift_clf.feature_importances_):
             feature_importance.append({
                 'feature': feature_name,
-                'importance': 100 * feat_importance / sum(self.clf.feature_importances_)
+                'importance': 100 * feat_importance / sum(self.drift_clf.feature_importances_)
             })
 
         dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
@@ -267,7 +264,7 @@ class DriftAnalyzer:
         :param output_raw_score:
         :return:
         """
-        predicted_Y = self.clf.predict(self._drift_test_X)
+        predicted_Y = self.drift_clf.predict(self._drift_test_X)
         test_Y = pd.Series(self._drift_test_Y)
         drift_accuracy = accuracy_score(test_Y, predicted_Y)
         if output_raw_score:
@@ -286,9 +283,9 @@ class DriftAnalyzer:
             raise ValueError('No target was defined at fit phase.')
 
         if self._model_accessor is not None:
-            original_prediction_df = self._model_accessor.predict(self._original_test_df[:limit])
+            original_prediction_df = self._model_accessor.predict(self._original_df[:limit])
             original_prediction_df = original_prediction_df.rename(columns={'prediction':self.target})
-            new_predicton_df = self._model_accessor.predict(self._new_test_df[:limit])
+            new_predicton_df = self._model_accessor.predict(self._new_df[:limit])
             new_predicton_df = new_predicton_df.rename(columns={'prediction':self.target})
 
             if self._model_accessor.get_prediction_type() == 'CLASSIFICATION':
@@ -300,8 +297,8 @@ class DriftAnalyzer:
             return {FROM_ORIGINAL: original_prediction_df, FROM_NEW: new_predicton_df}
 
         else: # no proba columns
-            original_prediction_df = self._original_test_df.loc[:, [self.target]]
-            new_prediciton_df = self._new_test_df.loc[:, [self.target]]
+            original_prediction_df = self._original_df.loc[:, [self.target]]
+            new_prediciton_df = self._new_df.loc[:, [self.target]]
             return {FROM_ORIGINAL: original_prediction_df, FROM_NEW: new_prediciton_df}
 
     def get_fugacity(self, reformat=False):
@@ -324,7 +321,6 @@ class DriftAnalyzer:
         if reformat: # for the model view
             original_fugacity = (100 * original_prediction_df[self.target].value_counts(normalize=True)).round(decimals=2).to_dict()
             new_fugacity = (100 * new_prediciton_df[self.target].value_counts(normalize=True)).round(decimals=2).to_dict()
-
             fugacity = []
             for key in original_fugacity.keys():
                 temp_fugacity = {}

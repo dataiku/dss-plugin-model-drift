@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
 MAX_NUM_ROW = 100000
+SURROGATE_TARGET = "_dku_predicted_label_"
 
 class ModelAccessor:
     def __init__(self, model_handler=None):
@@ -68,10 +69,9 @@ class ModelAccessor:
             surrogate_model = SurrogateModel(self.get_prediction_type())
             original_test_df = self.get_original_test_df()
             predictions_on_original_test_df = self.get_predictor().predict(original_test_df)
-            surrogate_target = 'dku_predicted_label'
             surrogate_df = original_test_df[self.get_selected_features()]
-            surrogate_df[surrogate_target] = predictions_on_original_test_df['prediction']
-            surrogate_model.fit(surrogate_df, surrogate_target)
+            surrogate_df[SURROGATE_TARGET] = predictions_on_original_test_df['prediction']
+            surrogate_model.fit(surrogate_df, SURROGATE_TARGET)
             return surrogate_model.get_feature_importance()
 
 

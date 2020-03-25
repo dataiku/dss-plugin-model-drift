@@ -4,7 +4,7 @@ import numpy as np
 import math
 import pandas as pd
 from sklearn.neighbors import KernelDensity
-from sklearn.metrics import *
+from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from dku_data_drift.preprocessing import Preprocessor
 
@@ -87,11 +87,11 @@ class SurrogateModel:
         self.feature_names = None
         self.target = None
         self.prediction_type = prediction_type
+        #TODO should we define some params of RF to avoid long computation ?
         if prediction_type == 'CLASSIFICATION':
             self.clf = RandomForestClassifier()
         else:
             self.clf = RandomForestRegressor()
-
         self.check()
 
     def check(self):
