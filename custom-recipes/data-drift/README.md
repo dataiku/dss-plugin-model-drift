@@ -18,12 +18,3 @@ two datasets and compute a disimilarity measure.
 
 Define the abstract concepts of surrogate models and other
 stuff. 
-
-## Ideas
-
-The concepts of dissimilarity depends on the boundary,
-if we use a linear classifier or deep learning, this
-will not be the same definition in our model.
-
-Also, this work is tightly close to the Scikit model
-object and the preprocessor objects.
