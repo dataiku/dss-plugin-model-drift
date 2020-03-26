@@ -7,10 +7,6 @@ from sklearn.tree import DecisionTreeClassifier
 from dku_data_drift.model_tools import SurrogateModel
 import logging
 
-# TODO: remove
-import joblib
-from dev_helper import OBJECT_PATH, DATA_PATH
-
 logger = logging.getLogger(__name__)
 
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
@@ -22,7 +18,6 @@ class ModelAccessor:
 
     def __init__(self, model_handler=None):
         self.model_handler = model_handler
-        joblib.dump(self.model_handler, OBJECT_PATH+"model_handler")
 
     def get_prediction_type(self):
         """
