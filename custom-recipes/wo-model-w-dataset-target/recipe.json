@@ -1,6 +1,6 @@
 {
     "meta": {
-        "label": "Model drift: no model, with dataset and target",
+        "label": "Model drift: no model, with dataset, with target",
         "description": "A recipe for model drift",
         "icon": "icon-puzzle-piece"
     },
