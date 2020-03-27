@@ -22,7 +22,7 @@
             "description": "Input model of predictions.",
             "arity": "UNARY",
             "required": true,
-            "acceptsDataset": true,
+            "acceptsDataset": false,
             "acceptsSavedModel": true
         }
     ],
