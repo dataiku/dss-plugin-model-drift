@@ -1,0 +1,54 @@
+{
+    "meta": {
+        "label": "Model drift: with model",
+        "description": "A recipe for model drift",
+        "icon": "icon-puzzle-piece"
+    },
+
+    "kind": "PYTHON",
+    
+    "inputRoles" : [
+        {
+            "name": "input",
+            "label": "Input dataset",
+            "description": "The dataset containing the raw data from which we'll compute correlations.",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        },
+        {
+            "name": "model",
+            "label": "Input model",
+            "description": "Input model of predictions.",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "acceptsSavedModel": true
+        }
+    ],
+
+    "outputRoles" : [
+        {
+            "name": "main_output",
+            "label": "Output dataset",
+            "description": "The dataset containing the correlations.",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "params": [
+        {
+            "name": "learning_task",
+            "label" : "Type of learning task",
+            "type": "STRING",
+            "defaultValue" : "CLASSIFICATION",
+            "description": "The type of learning task among CLASSIFICATION, REGRESSION",
+            "mandatory" : true
+        }
+    ],
+
+    "resourceKeys": []
+
+}

@@ -1,0 +1,53 @@
+{
+    "meta": {
+        "label": "Model drift: no model, with dataset and target",
+        "description": "A recipe for model drift",
+        "icon": "icon-puzzle-piece"
+    },
+
+    "kind": "PYTHON",
+    
+    "inputRoles" : [
+        {
+            "name": "original",
+            "label": "Original dataset",
+            "description": "The dataset where the model was trained.",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        },
+        {
+            "name": "new",
+            "label": "New dataset",
+            "description": "The new dataset.",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "outputRoles" : [
+        {
+            "name": "main_output",
+            "label": "Output dataset",
+            "description": "The dataset containing the correlations.",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "params": [
+        {
+            "name": "target_variable",
+            "label" : "The target variable",
+            "type": "STRING",
+            "defaultValue" : "y",
+            "description": "The name of the column in the dataset that is the target variable.",
+            "mandatory" : true
+        }
+    ],
+
+    "resourceKeys": []
+
+}
