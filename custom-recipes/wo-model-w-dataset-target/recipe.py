@@ -7,7 +7,9 @@ from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.model_accessor import ModelAccessor
 from model_metadata import get_model_handler
 
+import datetime
 import logging
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='Model Drift Recipe | %(levelname)s - %(message)s')
 
@@ -26,8 +28,8 @@ output_dataset =  output_datasets[0]
 
 drifter = DriftAnalyzer()
 drifter.fit(new_df=new_df, model_accessor=None, original_df=original_df, target=target_variable)
+
+timestamp_string = datetime.datetime.now().ctime()
 drift_score = drifter.get_drift_score()
-
-output = {'drift_score': [drift_score]}
-
+output = {'timestamp': [timestamp_string], 'drift_score': [drift_score]}
 output_dataset.write_with_schema(pd.DataFrame(output))

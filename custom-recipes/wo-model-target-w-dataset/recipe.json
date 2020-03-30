@@ -1,7 +1,7 @@
 {
     "meta": {
-        "label": "Model drift: no model, no target, with dataset",
-        "description": "A recipe for model drift",
+        "label": "There is no model available, we compare two datasets with no target variable",
+        "description": "Compare a potential drift between two datasets.",
         "icon": "icon-puzzle-piece"
     },
 

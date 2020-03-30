@@ -1,9 +1,11 @@
 {
     "meta": {
-        "label": "Model drift: no model, with dataset, with target",
-        "description": "A recipe for model drift",
+        "label": "There is no model available but there are two datasets and the target variable.",
+        "description": "Get insights of a potential drift when having two datasets and a target variable",
         "icon": "icon-puzzle-piece"
     },
+
+    "selectableFromDataset": "original",
 
     "kind": "PYTHON",
     
@@ -41,10 +43,10 @@
         {
             "name": "target_variable",
             "label" : "The target variable",
-            "type": "STRING",
-            "defaultValue" : "y",
+            "type": "COLUMN",
             "description": "The name of the column in the dataset that is the target variable.",
-            "mandatory" : true
+            "mandatory" : true,
+            "columnRole": "original"
         }
     ],
 

@@ -1,7 +1,7 @@
 {
     "meta": {
-        "label": "Model drift: with model",
-        "description": "A recipe for model drift",
+        "label": "The model is available.",
+        "description": "Evaluate a drift between two datasets when a model is trained.",
         "icon": "icon-puzzle-piece"
     },
 
@@ -23,7 +23,8 @@
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": false,
-            "acceptsSavedModel": true
+            "acceptsSavedModel": true,
+            "visibilityCondition": "model.advanced_activated"
         }
     ],
 
@@ -41,11 +42,20 @@
     "params": [
         {
             "name": "learning_task",
-            "label" : "Type of learning task",
-            "type": "STRING",
-            "defaultValue" : "CLASSIFICATION",
-            "description": "The type of learning task among CLASSIFICATION, REGRESSION",
-            "mandatory" : true
+            "label": "Type of learning task",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "REGRESSION",
+                    "label": "A regression task"
+                },
+                {
+                    "value": "CLASSIFICATION",
+                    "label": "A classification task"
+                }
+            ],
+            "description": "The type of learning task.",
+            "mandatory": true
         }
     ],
 
