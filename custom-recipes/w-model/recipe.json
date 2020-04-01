@@ -1,17 +1,19 @@
 {
     "meta": {
         "label": "The model is available.",
-        "description": "Evaluate a drift between two datasets when a model is trained.",
+        "description": "Evaluate a drift between the training dataset of a model and a new dataset.",
         "icon": "icon-puzzle-piece"
     },
 
     "kind": "PYTHON",
+
+    "paramsPythonSetup": "compute_model_id_choice.py",
     
     "inputRoles" : [
         {
             "name": "input",
             "label": "Input dataset",
-            "description": "The dataset containing the raw data from which we'll compute correlations.",
+            "description": "The new dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -19,7 +21,7 @@
         {
             "name": "model",
             "label": "Input model",
-            "description": "Input model of predictions.",
+            "description": "Trained model.",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": false,
@@ -31,8 +33,8 @@
     "outputRoles" : [
         {
             "name": "main_output",
-            "label": "Output dataset",
-            "description": "The dataset containing the correlations.",
+            "label": "Output metrics",
+            "description": "Drift score and metrics",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -42,20 +44,26 @@
     "params": [
         {
             "name": "learning_task",
-            "label": "Type of learning task",
+            "label": "Type of learning task:",
             "type": "SELECT",
             "selectChoices": [
                 {
-                    "value": "REGRESSION",
-                    "label": "A regression task"
+                    "value": "CLASSIFICATION",
+                    "label": "CLASSIFICATION"
                 },
                 {
-                    "value": "CLASSIFICATION",
-                    "label": "A classification task"
+                    "value": "REGRESSION",
+                    "label": "REGRESSION"
                 }
             ],
-            "description": "The type of learning task.",
+            "description": "Type of learning task",
             "mandatory": true
+        },
+        {
+            "name": "version_id",
+            "label": "The version of the model you want to use",
+            "type": "SELECT",
+            "getChoicesFromPython": true
         }
     ],
 

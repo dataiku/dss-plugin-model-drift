@@ -1,7 +1,7 @@
 {
     "meta": {
         "label": "There is no model available but there are two datasets and the target variable.",
-        "description": "Get insights of a potential drift when having two datasets and a target variable",
+        "description": "Measure a potential drift when having two datasets and a target variable",
         "icon": "icon-puzzle-piece"
     },
 
@@ -13,7 +13,7 @@
         {
             "name": "original",
             "label": "Original dataset",
-            "description": "The dataset where the model was trained.",
+            "description": "Reference dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -21,7 +21,7 @@
         {
             "name": "new",
             "label": "New dataset",
-            "description": "The new dataset.",
+            "description": "New dataset to compare",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -32,7 +32,7 @@
         {
             "name": "main_output",
             "label": "Output dataset",
-            "description": "The dataset containing the correlations.",
+            "description": "The dataset containing the drift score and metrics",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -44,7 +44,7 @@
             "name": "target_variable",
             "label" : "The target variable",
             "type": "COLUMN",
-            "description": "The name of the column in the dataset that is the target variable.",
+            "description": "Target variable (As a column in the reference dataset)",
             "mandatory" : true,
             "columnRole": "original"
         }

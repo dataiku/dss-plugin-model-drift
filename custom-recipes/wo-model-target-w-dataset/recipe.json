@@ -1,7 +1,7 @@
 {
     "meta": {
-        "label": "There is no model available, we compare two datasets with no target variable",
-        "description": "Compare a potential drift between two datasets.",
+        "label": "There is no model available and no target variable, we compare only two datasets",
+        "description": "Measure a potential drift between two datasets",
         "icon": "icon-puzzle-piece"
     },
 
@@ -11,7 +11,7 @@
         {
             "name": "original",
             "label": "Original dataset",
-            "description": "The dataset where the model was trained.",
+            "description": "The reference dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -19,7 +19,7 @@
         {
             "name": "new",
             "label": "New dataset",
-            "description": "The new dataset.",
+            "description": "The new dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -30,7 +30,7 @@
         {
             "name": "main_output",
             "label": "Output dataset",
-            "description": "The dataset containing the correlations.",
+            "description": "The dataset containing metrics and drift score",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true

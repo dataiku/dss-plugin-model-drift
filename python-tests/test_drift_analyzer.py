@@ -16,7 +16,6 @@ import pytest
 plugin_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(plugin_root, 'python-lib'))
 
-
 from dku_data_drift import DriftAnalyzer, ModelAccessor
 
 RANDOM_SEED = 65537 # Fermat prime number <3
