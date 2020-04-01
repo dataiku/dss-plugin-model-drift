@@ -31,8 +31,6 @@ saved_model = project.get_saved_model(model_id)
 available_model_version = saved_model.list_versions()
 logger.info("The input model has the following version ids: {}".format(available_model_version))
 
-# Retrieve the learning task
-learning_task = get_recipe_config()['learning_task']
 # Retrieve the version id of the model (dynamic dropdown selection)
 version_id = get_recipe_config()['version_id']
 
@@ -46,7 +44,7 @@ model_handler = get_model_handler(model=model, version_id=version_id)
 model_accessor = ModelAccessor(model_handler)
 
 # Analyze the drift
-drifter = DriftAnalyzer(prediction_type=learning_task)
+drifter = DriftAnalyzer(prediction_type=None)
 target = model_accessor.get_target_variable()
 drifter.fit(new_df, model_accessor=model_accessor, original_df=None, target=None)
 

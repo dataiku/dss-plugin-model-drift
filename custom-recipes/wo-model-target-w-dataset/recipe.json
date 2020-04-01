@@ -5,6 +5,8 @@
         "icon": "icon-puzzle-piece"
     },
 
+    "selectableFromDataset": "original",
+
     "kind": "PYTHON",
     
     "inputRoles" : [
@@ -37,7 +39,25 @@
         }
     ],
 
-    "params": [],
+    "params": [
+        {
+            "name": "learning_task",
+            "label": "Type of learning task:",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "CLASSIFICATION",
+                    "label": "CLASSIFICATION"
+                },
+                {
+                    "value": "REGRESSION",
+                    "label": "REGRESSION"
+                }
+            ],
+            "description": "Type of learning task",
+            "mandatory": true
+        }
+    ],
 
     "resourceKeys": []
 

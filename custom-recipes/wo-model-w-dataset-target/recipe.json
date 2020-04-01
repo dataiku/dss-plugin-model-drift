@@ -41,6 +41,23 @@
 
     "params": [
         {
+            "name": "learning_task",
+            "label": "Type of learning task:",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "CLASSIFICATION",
+                    "label": "CLASSIFICATION"
+                },
+                {
+                    "value": "REGRESSION",
+                    "label": "REGRESSION"
+                }
+            ],
+            "description": "Type of learning task",
+            "mandatory": true
+        },
+        {
             "name": "target_variable",
             "label" : "The target variable",
             "type": "COLUMN",

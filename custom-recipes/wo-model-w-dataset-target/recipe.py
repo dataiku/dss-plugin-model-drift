@@ -26,8 +26,11 @@ output_names = get_output_names_for_role('main_output')
 output_datasets = [dataiku.Dataset(name) for name in output_names]
 output_dataset = output_datasets[0]
 
+# Retrieve the learning task
+learning_task = get_recipe_config()['learning_task']
+
 # Analyse the drift
-drifter = DriftAnalyzer()
+drifter = DriftAnalyzer(learning_task)
 drifter.fit(new_df=new_df, model_accessor=None, original_df=original_df, target=target_variable)
 
 # Write the drift score and metrics
