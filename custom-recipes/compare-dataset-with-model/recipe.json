@@ -23,7 +23,7 @@
         {
             "name": "model",
             "label": "Input model",
-            "description": "Trained model.",
+            "description": "Trained model",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": false,
