@@ -1,7 +1,7 @@
 {
     "meta": {
-        "label": "There is no model available and no target variable, we compare only two datasets",
-        "description": "Measure a potential drift between two datasets",
+        "label": "There is no model available but there are two datasets and the target variable.",
+        "description": "Measure a potential drift when having two datasets and a target variable",
         "icon": "icon-puzzle-piece"
     },
 
@@ -13,7 +13,7 @@
         {
             "name": "original",
             "label": "Original dataset",
-            "description": "The reference dataset",
+            "description": "Reference dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -21,7 +21,7 @@
         {
             "name": "new",
             "label": "New dataset",
-            "description": "The new dataset",
+            "description": "New dataset to compare",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -32,7 +32,7 @@
         {
             "name": "main_output",
             "label": "Output dataset",
-            "description": "The dataset containing metrics and drift score",
+            "description": "The dataset containing drift metrics",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -42,20 +42,26 @@
     "params": [
         {
             "name": "learning_task",
-            "label": "Type of learning task:",
+            "label": "Type of learning task",
             "type": "SELECT",
             "selectChoices": [
                 {
                     "value": "CLASSIFICATION",
-                    "label": "CLASSIFICATION"
+                    "label": "Classification"
                 },
                 {
                     "value": "REGRESSION",
-                    "label": "REGRESSION"
+                    "label": "Regression"
                 }
             ],
-            "description": "Type of learning task",
             "mandatory": true
+        },
+        {
+            "name": "target_variable",
+            "label" : "Target variable",
+            "type": "COLUMN",
+            "mandatory" : true,
+            "columnRole": "original"
         }
     ],
 

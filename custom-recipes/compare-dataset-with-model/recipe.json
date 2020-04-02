@@ -27,8 +27,7 @@
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": false,
-            "acceptsSavedModel": true,
-            "visibilityCondition": "model.advanced_activated"
+            "acceptsSavedModel": true
         }
     ],
 

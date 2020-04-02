@@ -1,7 +1,7 @@
 {
     "meta": {
-        "label": "There is no model available but there are two datasets and the target variable.",
-        "description": "Measure a potential drift when having two datasets and a target variable",
+        "label": "Compare between two datasets.",
+        "description": "Measure a potential drift between two datasets",
         "icon": "icon-puzzle-piece"
     },
 
@@ -13,7 +13,6 @@
         {
             "name": "original",
             "label": "Original dataset",
-            "description": "Reference dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -21,7 +20,6 @@
         {
             "name": "new",
             "label": "New dataset",
-            "description": "New dataset to compare",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -32,7 +30,7 @@
         {
             "name": "main_output",
             "label": "Output dataset",
-            "description": "The dataset containing the drift score and metrics",
+            "description": "Drift metrics are written in this dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -42,28 +40,20 @@
     "params": [
         {
             "name": "learning_task",
-            "label": "Type of learning task:",
+            "label": "Type of learning task",
             "type": "SELECT",
             "selectChoices": [
                 {
                     "value": "CLASSIFICATION",
-                    "label": "CLASSIFICATION"
+                    "label": "Classification"
                 },
                 {
                     "value": "REGRESSION",
-                    "label": "REGRESSION"
+                    "label": "Regression"
                 }
             ],
             "description": "Type of learning task",
             "mandatory": true
-        },
-        {
-            "name": "target_variable",
-            "label" : "The target variable",
-            "type": "COLUMN",
-            "description": "Target variable (As a column in the reference dataset)",
-            "mandatory" : true,
-            "columnRole": "original"
         }
     ],
 

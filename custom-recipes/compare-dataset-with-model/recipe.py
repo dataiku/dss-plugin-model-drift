@@ -32,7 +32,9 @@ available_model_version = saved_model.list_versions()
 logger.info("The input model has the following version ids: {}".format(available_model_version))
 
 # Retrieve the version id of the model (dynamic dropdown selection)
-version_id = get_recipe_config()['version_id']
+version_id = get_recipe_config().get('version_id')
+if version_id is None:
+    raise ValueError('Version id must be defined.')
 
 # Retrieve the output dataset for metrics and score
 output_names = get_output_names_for_role('main_output')
@@ -46,21 +48,10 @@ model_accessor = ModelAccessor(model_handler)
 # Analyze the drift
 drifter = DriftAnalyzer(prediction_type=None)
 target = model_accessor.get_target_variable()
-drifter.fit(new_df, model_accessor=model_accessor, original_df=None, target=None)
+drifter.fit(new_df, model_accessor=model_accessor)
 
 # Write the metrics and information about the drift in an output dataset
 timestamp = datetime.datetime.now()
 drift_score = drifter.get_drift_score()
 output = {'timestamp': [timestamp], 'model_id': [model_id], 'model_version': [version_id], 'drift_score': [drift_score]}
-try:
-    existing_df = output_dataset.get_dataframe()
-    logger.info("Got existing dataset")
-except:
-    logger.info("No existing dataset")
-    existing_df = None
-output_df = pd.DataFrame(output)
-if existing_df is None:
-    output_dataset.write_with_schema(output_df)
-else:
-    output_dataset.write_with_schema(pd.concat([existing_df, output_df], axis=0))
-logger.info("Recipe processing has ended.")
+output_dataset.write_with_schema(pd.DataFrame(output))

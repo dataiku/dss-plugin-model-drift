@@ -36,5 +36,5 @@ def do(payload, config, plugin_config, inputs):
     saved_model = project.get_saved_model(model_id)
     available_model_version = saved_model.list_versions()
     available_model = [(model_desc['id'],  process_timestamp(model_desc['trainDate'])) for model_desc in available_model_version]
-    choices = [ {"value": model_[0], "label": "{}, {}".format(*model_)} for model_ in available_model]
+    choices = [ {"value": model_[0], "label": "version {}, deployed at {}".format(*model_)} for model_ in available_model]
     return {"choices": choices}
