@@ -52,7 +52,6 @@
                     "label": "Regression"
                 }
             ],
-            "description": "Type of learning task",
             "mandatory": true
         }
     ],
