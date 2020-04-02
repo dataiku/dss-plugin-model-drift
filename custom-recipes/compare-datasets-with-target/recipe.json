@@ -46,11 +46,11 @@
             "type": "SELECT",
             "selectChoices": [
                 {
-                    "value": "Classification",
+                    "value": "CLASSIFICATION",
                     "label": "Classification"
                 },
                 {
-                    "value": "Regression",
+                    "value": "REGRESSION",
                     "label": "Regression"
                 }
             ],
