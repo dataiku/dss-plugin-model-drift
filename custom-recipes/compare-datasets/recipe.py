@@ -36,4 +36,4 @@ drifter.fit(new_df=new_df, original_df=original_df)
 timestamp = datetime.datetime.now()
 drift_score = drifter.get_drift_score()
 output = {'timestamp': [timestamp], 'drift_score': [drift_score]}
-output_dataset.write_with_schema(pd.DataFrame(output))
+output_dataset.write_with_schema(pd.DataFrame(output, columns=['timestamp', 'drift_score']))

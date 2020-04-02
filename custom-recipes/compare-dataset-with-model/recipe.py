@@ -54,4 +54,4 @@ drifter.fit(new_df, model_accessor=model_accessor)
 timestamp = datetime.datetime.now()
 drift_score = drifter.get_drift_score()
 output = {'timestamp': [timestamp], 'model_id': [model_id], 'model_version': [version_id], 'drift_score': [drift_score]}
-output_dataset.write_with_schema(pd.DataFrame(output))
+output_dataset.write_with_schema(pd.DataFrame(output, columns=['timestamp', 'model_id', 'model_version', 'drift_score']))
