@@ -15,9 +15,9 @@ ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain th
 FROM_ORIGINAL = 'original'
 FROM_NEW = 'new'
 MIN_NUM_ROWS = 500 # heuristic choice
-MAX_NUM_ROW = 100000 # heuristic choice
+MAX_NUM_ROW = 200000 # heuristic choice
 CUMULATIVE_PERCENTAGE_THRESHOLD = 90
-PREDICTION_TEST_SIZE = 10000
+PREDICTION_TEST_SIZE = 100000
 
 
 class DriftAnalyzer:
@@ -95,7 +95,6 @@ class DriftAnalyzer:
         new_df_without_target = new_df.drop(self.target, axis=1)
         original_df_without_target = original_df.drop(self.target, axis=1)
         return self._prepare_data_for_drift_model(new_df_without_target, original_df_without_target)
-
 
     def prepare_data_when_without_target(self, new_df, original_df):
         logger.info('Prepare data without target for drift model')
