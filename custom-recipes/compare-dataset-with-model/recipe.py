@@ -20,7 +20,7 @@ project = client.get_project(dataiku.default_project_key())
 # Retrieve input dataset
 logger.info("Retrieve the input dataset")
 input_names = get_input_names_for_role('input')
-new_df = dataiku.Dataset(input_names[0]).get_dataframe()
+new_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=100000)
 
 # Retrieve input model
 logger.info("Retrieve the input model")

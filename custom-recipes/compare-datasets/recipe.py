@@ -12,11 +12,11 @@ logging.basicConfig(level=logging.INFO, format='Model Drift Recipe | %(levelname
 
 # Retrieve reference dataset from input
 input_names = get_input_names_for_role('original')
-original_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=1000)
+original_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=100000)
 
 # Retrieve the new dataset from input
 input_names = get_input_names_for_role('new')
-new_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=1000)
+new_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=100000)
 
 # Retrieve the output dataset
 output_names = get_output_names_for_role('main_output')
