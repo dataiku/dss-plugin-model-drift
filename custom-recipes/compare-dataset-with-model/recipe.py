@@ -6,6 +6,7 @@ from dataiku.customrecipe import *
 from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.model_accessor import ModelAccessor
 from dku_data_drift.dataframe_helpers import schema_are_compatible
+from dku_data_drift.dataset_helpers import get_partitioning_columns
 
 from model_metadata import get_model_handler
 
@@ -23,6 +24,12 @@ project = client.get_project(dataiku.default_project_key())
 logger.info("Retrieve the input dataset")
 input_names = get_input_names_for_role('input')
 new_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=100000)
+
+partition_cols_new_df = get_partitioning_columns(new_df)
+if partition_cols_new_df:
+    new_df = new_df.drop(partition_cols_new_df, axis=1)
+if len(new_df.columns)==0:
+    raise ValueError('Without the partition column, dataset is empty.')
 
 # Retrieve input model
 logger.info("Retrieve the input model")

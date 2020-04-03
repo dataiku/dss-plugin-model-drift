@@ -4,6 +4,7 @@ from dataiku.customrecipe import *
 
 from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.dataframe_helpers import schema_are_compatible
+from dku_data_drift.dataset_helpers import get_partitioning_columns
 
 import datetime
 import logging
@@ -33,6 +34,16 @@ output_dataset = output_datasets[0]
 learning_task = get_recipe_config().get('learning_task')
 if learning_task is None:
     raise ValueError('Learning task must be defined.')
+
+partition_cols_new_df = get_partitioning_columns(new_df)
+partition_cols_original_df = get_partitioning_columns(original_df)
+if partition_cols_original_df:
+    original_df = original_df.drop(partition_cols_original_df, axis=1)
+if partition_cols_new_df:
+    new_df = new_df.drop(partition_cols_new_df, axis=1)
+if len(new_df.columns)==0 or len(original_df.columns)==0:
+    raise ValueError('Without the partition column, at least one of the datasets is empty.')
+
 
 # Analyse the drift
 drifter = DriftAnalyzer(learning_task)

@@ -33,9 +33,11 @@ if learning_task is None:
 # Handle partitioning
 partition_cols_new_df = get_partitioning_columns(new_df)
 partition_cols_original_df = get_partitioning_columns(original_df)
-new_df = new_df.drop(partition_cols_new_df, axis=1)
-original_df = original_df.drop(partition_cols_original_df, axis=1)
-if len(list(new_df.columns))==0 or len(list(original_df.columns))==0:
+if partition_cols_original_df:
+    original_df = original_df.drop(partition_cols_original_df, axis=1)
+if partition_cols_new_df:
+    new_df = new_df.drop(partition_cols_new_df, axis=1)
+if len(new_df.columns)==0 or len(original_df.columns)==0:
     raise ValueError('Without the partition column, at least one of the datasets is empty.')
 
 # Analyse the drift
