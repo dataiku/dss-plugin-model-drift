@@ -53,5 +53,19 @@ drifter.fit(new_df, model_accessor=model_accessor)
 # Write the metrics and information about the drift in an output dataset
 timestamp = datetime.datetime.now()
 drift_score = drifter.get_drift_score()
-output = {'timestamp': [timestamp], 'model_id': [model_id], 'model_version': [version_id], 'drift_score': [drift_score]}
-output_dataset.write_with_schema(pd.DataFrame(output, columns=['timestamp', 'model_id', 'model_version', 'drift_score']))
+metrics_row = {'timestamp': [timestamp], 'model_id': [model_id], 'model_version': [version_id], 'drift_score': [drift_score]}
+
+new_df = pd.DataFrame(metrics_row, columns=['timestamp', 'model_id', 'model_version', 'drift_score'])
+
+if output_dataset.cols is None:
+    logger.info("Dataset is empty, writing the new metrics in a new table")
+    output_dataset.write_with_schema(new_df)
+else:
+    logger.info("Dataset is not empty, append the new metrics to the previous table")
+    existing_df = output_dataset.get_dataframe()
+    try:
+        concatenate_df = pd.concat([existing_df, new_df], axis=0)
+    except:
+        raise Exception("The new dataset and the previous one do not have the same schema")
+    concatenate_df.columns = ['timestamp', 'model_id', 'model_version', 'drift_score']
+    output_dataset.write_with_schema(concatenate_df)
