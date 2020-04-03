@@ -23,9 +23,10 @@ project = client.get_project(dataiku.default_project_key())
 # Retrieve input dataset
 logger.info("Retrieve the input dataset")
 input_names = get_input_names_for_role('input')
-new_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=100000)
+new_ds = dataiku.Dataset(input_names[0])
+new_df = new_ds.get_dataframe(limit=100000)
 
-partition_cols_new_df = get_partitioning_columns(new_df)
+partition_cols_new_df = get_partitioning_columns(new_ds)
 if partition_cols_new_df:
     new_df = new_df.drop(partition_cols_new_df, axis=1)
 if len(new_df.columns)==0:

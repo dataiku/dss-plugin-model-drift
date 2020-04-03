@@ -14,11 +14,13 @@ logging.basicConfig(level=logging.INFO, format='Model Drift Recipe | %(levelname
 
 # Retrieve the reference dataset
 input_names = get_input_names_for_role('original')
-original_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=100000)
+original_ds = dataiku.Dataset(input_names[0])
+original_df = original_ds.get_dataframe(limit=100000)
 
 # Retrieve the new dataset
 input_names = get_input_names_for_role('new')
-new_df = dataiku.Dataset(input_names[0]).get_dataframe(limit=100000)
+new_ds = dataiku.Dataset(input_names[0])
+new_df = new_ds.get_dataframe(limit=100000)
 
 # Retrieve the target variable
 target_variable = get_recipe_config().get('target_variable')
@@ -35,8 +37,8 @@ learning_task = get_recipe_config().get('learning_task')
 if learning_task is None:
     raise ValueError('Learning task must be defined.')
 
-partition_cols_new_df = get_partitioning_columns(new_df)
-partition_cols_original_df = get_partitioning_columns(original_df)
+partition_cols_new_df = get_partitioning_columns(new_ds)
+partition_cols_original_df = get_partitioning_columns(original_ds)
 if partition_cols_original_df:
     original_df = original_df.drop(partition_cols_original_df, axis=1)
 if partition_cols_new_df:
