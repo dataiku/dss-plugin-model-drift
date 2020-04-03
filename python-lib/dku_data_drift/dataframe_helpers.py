@@ -20,6 +20,16 @@ except NameError:
     basestring = str
 
 
+def schema_are_compatible(df1, df2):
+    """
+    Return True if df1 and df2 have the same columns
+    :param df1: Pandas dataframe
+    :param df2: Pandas dataframe
+    :return:
+    """
+    return sorted(list(df1.columns)) == sorted(list(df1.columns))
+
+
 def not_enough_data(df, min_len=1):
     """
         Compare length of dataframe to minimum lenght of the test data.

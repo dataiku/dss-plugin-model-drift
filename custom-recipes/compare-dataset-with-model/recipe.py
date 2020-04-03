@@ -5,6 +5,8 @@ from dataiku.customrecipe import *
 
 from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.model_accessor import ModelAccessor
+from dku_data_drift.dataframe_helpers import schema_are_compatible
+
 from model_metadata import get_model_handler
 
 import datetime
@@ -61,8 +63,10 @@ if output_dataset.cols is None:
     logger.info("Dataset is empty, writing the new metrics in a new table")
     output_dataset.write_with_schema(new_df)
 else:
-    logger.info("Dataset is not empty, append the new metrics to the previous table")
+    logger.info("Dataset is not empty, append the new metrics to the previous table.")
     existing_df = output_dataset.get_dataframe()
+    if not schema_are_compatible(existing_df, new_df):
+        raise ValueError('Schema are not equal, concatenation is not possible.')
     concatenate_df = pd.concat([existing_df, new_df], axis=0)
     concatenate_df.columns = ['timestamp', 'model_id', 'model_version', 'drift_score']
     output_dataset.write_with_schema(concatenate_df)
