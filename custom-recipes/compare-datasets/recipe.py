@@ -45,10 +45,7 @@ if output_dataset.cols is None:
 else:
     logger.info("Dataset is not empty, append the new metrics to the previous table")
     existing_df = output_dataset.get_dataframe()
-    try:
-        concatenate_df = pd.concat([existing_df, new_df], axis=0)
-    except:
-        raise Exception("The new dataset and the previous one do not have the same schema")
+    concatenate_df = pd.concat([existing_df, new_df], axis=0)
     concatenate_df.columns = ['timestamp', 'model_id', 'model_version', 'drift_score']
     output_dataset.write_with_schema(concatenate_df)
 
