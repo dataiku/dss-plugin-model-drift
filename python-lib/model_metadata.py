@@ -1,12 +1,16 @@
-# coding: utf-8
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import os
 import sys
 import json
 from dataiku.doctor.posttraining.model_information_handler import PredictionModelInformationHandler
 
+
 def get_model_handler(model, version_id=None):
     saved_model_version_id = _get_saved_model_version_id(model, version_id)
     return _get_model_info_handler(saved_model_version_id)
+
 
 def _get_model_info_handler(saved_model_version_id):
     infos = saved_model_version_id.split("-")
@@ -42,7 +46,8 @@ def _get_model_info_handler(saved_model_version_id):
             raise_(Exception, "The plugin is using a python2 code-env, cannot load a python3 model.", sys.exc_info()[2])
         else:
             raise_(Exception, "Fail to load saved model: {}".format(e), sys.exc_info()[2])
-        
+
+
 def _get_saved_model_version_id(model, version_id=None):
     model_def = model.get_definition()
     if version_id is None:

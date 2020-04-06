@@ -1,0 +1,56 @@
+{
+    "meta": {
+        "label": "The model is available.",
+        "description": "Evaluate a drift between the training dataset of a model and a new dataset.",
+        "icon": "icon-puzzle-piece"
+    },
+
+    "selectableFromDataset": "input",
+
+    "kind": "PYTHON",
+
+    "paramsPythonSetup": "compute_model_id_choice.py",
+    
+    "inputRoles" : [
+        {
+            "name": "input",
+            "label": "Input dataset",
+            "description": "The new dataset",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        },
+        {
+            "name": "model",
+            "label": "Input model",
+            "description": "Trained model",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": false,
+            "acceptsSavedModel": true
+        }
+    ],
+
+    "outputRoles" : [
+        {
+            "name": "main_output",
+            "label": "Output metrics",
+            "description": "Drift score and metrics",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "params": [
+        {
+            "name": "version_id",
+            "label": "The version of the model you want to use",
+            "type": "SELECT",
+            "getChoicesFromPython": true
+        }
+    ],
+
+    "resourceKeys": []
+
+}

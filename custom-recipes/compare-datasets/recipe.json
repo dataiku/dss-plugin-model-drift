@@ -1,0 +1,61 @@
+{
+    "meta": {
+        "label": "Compare between two datasets.",
+        "description": "Measure a potential drift between two datasets",
+        "icon": "icon-puzzle-piece"
+    },
+
+    "selectableFromDataset": "original",
+
+    "kind": "PYTHON",
+    
+    "inputRoles" : [
+        {
+            "name": "original",
+            "label": "Original dataset",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        },
+        {
+            "name": "new",
+            "label": "New dataset",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "outputRoles" : [
+        {
+            "name": "main_output",
+            "label": "Output dataset",
+            "description": "Drift metrics are written in this dataset",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "params": [
+        {
+            "name": "learning_task",
+            "label": "Type of learning task",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "CLASSIFICATION",
+                    "label": "Classification"
+                },
+                {
+                    "value": "REGRESSION",
+                    "label": "Regression"
+                }
+            ],
+            "mandatory": true
+        }
+    ],
+
+    "resourceKeys": []
+
+}
