@@ -30,8 +30,15 @@ def do(payload, config, plugin_config, inputs):
             model = str(input_['fullName'])
     if model is None:
         raise Exception("Did not catch the right input model")
+
+
     model_id = model.split('.')[-1]
     model = dataiku.Model(model_id)
+
+    if model.get_info().get('type') != 'PREDICTION':
+        raise ValueError('Model type {} is not supported. Please choose a regression or classifcation model.'.format(model.get_info().get('type')))
+
+
     choice_list = []
     for version in model.list_versions():
         version_detail = version.get('snippet', {})
