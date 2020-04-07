@@ -31,10 +31,28 @@ def do(payload, config, plugin_config, inputs):
     if model is None:
         raise Exception("Did not catch the right input model")
     model_id = model.split('.')[-1]
-    client = dataiku.api_client()
-    project = client.get_project(dataiku.default_project_key())
-    saved_model = project.get_saved_model(model_id)
-    available_model_version = saved_model.list_versions()
-    available_model = [(model_desc['id'],  process_timestamp(model_desc['trainDate'])) for model_desc in available_model_version]
-    choices = [ {"value": model_[0], "label": "version {}, deployed at {}".format(*model_)} for model_ in available_model]
-    return {"choices": choices}
+    model = dataiku.Model(model_id)
+    choice_list = []
+    for version in model.list_versions():
+        version_detail = version.get('snippet', {})
+        algorithm = version_detail.get('algorithm', '').lower().replace('_', ' ')
+        active_version = version.get('active') is True
+        train_date = process_timestamp(version_detail.get('trainDate'))
+        version_id = version.get('versionId')
+
+        if active_version:
+            version_info = {
+                'value': version_id,
+                'label': 'active version, trained on {1}, {0}'.format(algorithm, train_date)
+            }
+        else:
+            version_info = {
+                'value': version_id,
+                'label': 'trained on {1}, {0}'.format(algorithm, train_date)
+            }
+        choice_list.append((version_info, train_date))
+
+    sorted_choice_list = sorted(choice_list, key=lambda k: k[1])
+    final_choice_list = [choice[0] for choice in sorted_choice_list]
+
+    return {"choices": final_choice_list}
