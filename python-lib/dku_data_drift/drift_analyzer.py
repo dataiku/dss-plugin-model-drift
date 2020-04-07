@@ -15,7 +15,7 @@ ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain th
 FROM_ORIGINAL = 'original'
 FROM_NEW = 'new'
 MIN_NUM_ROWS = 500 # heuristic choice
-MAX_NUM_ROW = 200000 # heuristic choice
+MAX_NUM_ROW = 100000 # heuristic choice
 CUMULATIVE_PERCENTAGE_THRESHOLD = 90
 PREDICTION_TEST_SIZE = 100000
 

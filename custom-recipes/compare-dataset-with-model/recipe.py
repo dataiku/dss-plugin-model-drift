@@ -1,8 +1,6 @@
 import dataiku
-import pandas as pd, numpy as np
-from dataiku import pandasutils as pdu
+import pandas as pd
 from dataiku.customrecipe import *
-
 from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.model_accessor import ModelAccessor
 from dku_data_drift.dataframe_helpers import schema_are_compatible
@@ -12,6 +10,8 @@ from model_metadata import get_model_handler
 
 import datetime
 import logging
+
+MAX_NUM_ROW = 100000 # heuristic choice
 
 # init logger
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ project = client.get_project(dataiku.default_project_key())
 logger.info("Retrieve the input dataset")
 input_names = get_input_names_for_role('input')
 new_ds = dataiku.Dataset(input_names[0])
-new_df = new_ds.get_dataframe(limit=100000)
+new_df = new_ds.get_dataframe(limit=MAX_NUM_ROW)
 
 partition_cols_new_df = get_partitioning_columns(new_ds)
 if partition_cols_new_df:
@@ -48,8 +48,8 @@ if version_id is None:
 
 # Retrieve the output dataset for metrics and score
 output_names = get_output_names_for_role('main_output')
-output_datasets = [dataiku.Dataset(name) for name in output_names]
-output_dataset =  output_datasets[0]
+output_datasets = [dataiku.Dataset(name, ignore_flow=True) for name in output_names]
+output_dataset = output_datasets[0]
 
 # Access the model
 model_handler = get_model_handler(model=model, version_id=version_id)
@@ -67,14 +67,19 @@ metrics_row = {'timestamp': [timestamp], 'model_id': [model_id], 'model_version'
 
 new_df = pd.DataFrame(metrics_row, columns=['timestamp', 'model_id', 'model_version', 'drift_score'])
 
-if output_dataset.cols is None:
-    logger.info("Dataset is empty, writing the new metrics in a new table")
-    output_dataset.write_with_schema(new_df)
-else:
-    logger.info("Dataset is not empty, append the new metrics to the previous table.")
+try:
     existing_df = output_dataset.get_dataframe()
     if not schema_are_compatible(existing_df, new_df):
         raise ValueError('Schema are not equal, concatenation is not possible.')
+    logger.info("Dataset is not empty, append the new metrics to the previous table")
     concatenate_df = pd.concat([existing_df, new_df], axis=0)
-    concatenate_df.columns = ['timestamp', 'model_id', 'model_version', 'drift_score']
+    columns_order = ['timestamp', 'model_id', 'model_version', 'drift_score']
+    concatenate_df = concatenate_df[columns_order]
     output_dataset.write_with_schema(concatenate_df)
+except Exception as e:
+    from future.utils import raise_
+    if "No column in schema" in str(e) or 'No JSON object could be decoded' in str(e):
+        logger.info("Dataset is empty, writing the new metrics in a new table")
+        output_dataset.write_with_schema(new_df)
+    else:
+        raise_(Exception, "Fail to write to dataset: {}".format(e), sys.exc_info()[2])
