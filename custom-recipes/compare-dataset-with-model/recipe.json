@@ -1,8 +1,9 @@
 {
     "meta": {
-        "label": "The model is available.",
-        "description": "Evaluate a drift between the training dataset of a model and a new dataset.",
-        "icon": "icon-puzzle-piece"
+        "label": "Compute data drift of a model deployed on the flow",
+        "description": "Measure a potential data drift between the original training data of a model and a new dataset. Support regression and classification",
+        "icon": "icon-puzzle-piece",
+        "displayOrderRank": 1
     },
 
     "selectableFromDataset": "input",
@@ -13,29 +14,28 @@
     
     "inputRoles" : [
         {
-            "name": "input",
-            "label": "Input dataset",
-            "description": "The new dataset",
-            "arity": "UNARY",
-            "required": true,
-            "acceptsDataset": true
-        },
-        {
             "name": "model",
-            "label": "Input model",
-            "description": "Trained model",
+            "label": "Deployed model",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": false,
             "acceptsSavedModel": true
+        },
+        {
+            "name": "input",
+            "label": "New dataset",
+            "description": "New dataset",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
         }
     ],
 
     "outputRoles" : [
         {
             "name": "main_output",
-            "label": "Output metrics",
-            "description": "Drift score and metrics",
+            "label": "Metrics dataset",
+            "description": "Dataset storing drift metrics",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -45,7 +45,7 @@
     "params": [
         {
             "name": "version_id",
-            "label": "The version of the model you want to use",
+            "label": "Model version",
             "type": "SELECT",
             "getChoicesFromPython": true
         }

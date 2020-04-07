@@ -1,8 +1,9 @@
 {
     "meta": {
-        "label": "There is no model available but there are two datasets and the target variable.",
-        "description": "Measure a potential drift when having two datasets and a target variable",
-        "icon": "icon-puzzle-piece"
+        "label": "Compute data drift between two datasets that have predictions",
+        "description": "Measure a potenteial drift between the original training dataset and a new scoring dataset. A  column with predicitons is thus needed",
+        "icon": "icon-puzzle-piece",
+        "displayOrderRank": 2
     },
 
     "selectableFromDataset": "original",
@@ -12,8 +13,7 @@
     "inputRoles" : [
         {
             "name": "original",
-            "label": "Original dataset",
-            "description": "Reference dataset",
+            "label": "Original training dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -21,7 +21,6 @@
         {
             "name": "new",
             "label": "New dataset",
-            "description": "New dataset to compare",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -31,8 +30,8 @@
     "outputRoles" : [
         {
             "name": "main_output",
-            "label": "Output dataset",
-            "description": "The dataset containing drift metrics",
+            "label": "Metrics dataset",
+            "description": "Dataset storing drift metrics",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
@@ -58,7 +57,7 @@
         },
         {
             "name": "target_variable",
-            "label" : "Target variable",
+            "label" : "Prediction column",
             "type": "COLUMN",
             "mandatory" : true,
             "columnRole": "original"
