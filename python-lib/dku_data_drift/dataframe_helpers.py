@@ -27,7 +27,7 @@ def schema_are_compatible(df1, df2):
     :param df2: Pandas dataframe
     :return:
     """
-    return sorted(list(df1.columns)) == sorted(list(df2.columns))
+    return set(df1.columns) == set(df2.columns)
 
 
 def not_enough_data(df, min_len=1):

@@ -42,6 +42,9 @@ class DriftAnalyzer:
         #    raise ValueError('Clustering model is not supported.')
         return None
 
+    def get_prediction_type(self):
+        return self.prediction_type
+
     def fit(self, new_df, model_accessor=None, original_df=None, target=None):
         """
         Trains a classifier that attempts to discriminate between rows from the provided dataframe and
@@ -114,11 +117,11 @@ class DriftAnalyzer:
         feature_importance_metrics = self._get_feature_importance_metrics()
 
         if self.prediction_type == 'REGRESSION':
-            kde_dict = self._get_regression_prediction_metrics()
+            kde_dict = self.get_regression_prediction_metrics()
             fugacity_metrics = {}
             label_list = []
         elif self.prediction_type == 'CLASSIFICATION':
-            kde_dict, fugacity_metrics, label_list = self._get_classification_prediction_metrics()
+            kde_dict, fugacity_metrics, label_list = self.get_classification_prediction_metrics()
         else:
             raise ValueError('Prediction type not defined.')
 
@@ -129,13 +132,13 @@ class DriftAnalyzer:
                 'fugacity': fugacity_metrics,
                 'label_list': label_list}
 
-    def _get_classification_prediction_metrics(self):
+    def get_classification_prediction_metrics(self):
 
         if not self.has_predictions:
             raise ValueError('DriftAnalyzer needs a target.')
 
         if self.prediction_type != 'CLASSIFICATION':
-            raise ValueError('Can not use this function with a prediction type {}.'.format(self.prediction_type))
+            raise ValueError('Can not use this function with a {} model.'.format(self.prediction_type))
 
         if self._model_accessor is not None:
             prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
@@ -151,21 +154,22 @@ class DriftAnalyzer:
                 kde_new = format_proba_density(predictions_by_class.get(label).get(FROM_NEW))
                 cleaned_label = label.replace('proba_', 'Class ')
                 kde_dict[cleaned_label] = {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}
-            fugacity_metrics = self.get_fugacity(reformat=True)
-            label_list = [label for label in fugacity_metrics[0].keys() if label != 'source']
+            fugacity = self.get_fugacity(reformat=True)
+            label_list = [label for label in fugacity[0].keys() if label != 'source']
 
-            return kde_dict, fugacity_metrics, label_list
+            return kde_dict, fugacity, label_list
         else:
-            fugacity_metrics = self.get_fugacity()
-            return None, fugacity_metrics, None
+            fugacity = self.get_fugacity()
+            label_list = fugacity['class'].unique()
+            return None, fugacity, label_list
 
-    def _get_regression_prediction_metrics(self):
+    def get_regression_prediction_metrics(self):
 
         if not self.has_predictions:
             raise ValueError('No target was defined at fit phase.')
 
         if self.prediction_type != 'REGRESSION':
-            raise ValueError('Can not use this function with a prediction type {}.'.format(self.prediction_type))
+            raise ValueError('Can not use this function with a {} mode.'.format(self.prediction_type))
 
         prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
         kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values)
@@ -334,4 +338,10 @@ class DriftAnalyzer:
         else:
             original_fugacity = (100 * original_prediction_df[self.target].value_counts(normalize=True)).round(decimals=2).rename_axis('class').reset_index(name='percentage')
             new_fugacity = (100 * new_prediciton_df[self.target].value_counts(normalize=True)).round(decimals=2).rename_axis('class').reset_index(name='percentage')
-            return original_fugacity, new_fugacity
+            fugacity = {}
+
+            for label in original_fugacity['class'].unique():
+                fugacity_diff = new_fugacity[new_fugacity['class'] == label]['percentage'].values[0] - original_fugacity[original_fugacity['class'] == label]['percentage'].values[0]
+                new_label = 'fugacity_difference_of_class_{}'.format(label)
+                fugacity[new_label] = round(fugacity_diff, 3)
+            return fugacity

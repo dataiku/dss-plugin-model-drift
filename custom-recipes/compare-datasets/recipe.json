@@ -1,6 +1,6 @@
 {
     "meta": {
-        "label": "Compute data drift between two datasets",
+        "label": "Compute drift between two datasets",
         "description": "Measure a potential drift between two datasets",
         "icon": "icon-puzzle-piece",
         "displayOrderRank": 3
@@ -41,6 +41,16 @@
     ],
 
     "params": [
+        {
+            "name": "metric_list",
+            "label": "Metrics",
+            "type": "MULTISELECT",
+            "selectChoices": [
+                { "value": "drift_score", "label": "Drift score"},
+                { "value": "feature_importance", "label": "Feature importance"}
+            ],
+            "defaultValue": ["drift_score"]
+        }
     ],
 
     "resourceKeys": []
