@@ -89,7 +89,7 @@ if 'drift_score' in metric_list:
     column_description_dict['drift_score'] = 'The drift score (between 0 and 1) is low if the new dataset and the original dataset are indistinguishable.'
 
 if 'fugacity' in metric_list:
-    fugacity = drifter.get_fugacity()
+    fugacity = drifter.get_classification_fugacity()
     for k,v in fugacity.items():
         new_df[k] = [v]
         column_description_dict[k] = '{} is the difference between the ratio percentage of this class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'.format(k)

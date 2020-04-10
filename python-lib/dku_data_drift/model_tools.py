@@ -68,6 +68,32 @@ def mroc_auc_score(y_true, y_predictions, sample_weight=None):
         if i != j)
 
 
+def format_proba_density(data, sample_weight=None, proba=True, cast_to_int=True):
+    data = np.array(data)
+    if len(data) == 0:
+        return []
+    h = 1.06 * np.std(data) * math.pow(len(data), -.2)
+    if h <= 0:
+        h = 0.06
+    if len(np.unique(data)) == 1:
+        sample_weight = None
+
+    if proba:
+        min_interval = 0
+        max_interval = 100
+    else:
+        min_interval = np.min(data)
+        max_interval = np.max(data)
+    if cast_to_int:
+        X_plot = np.linspace(min_interval, max_interval, 500, dtype=int)[:, np.newaxis]
+    else:
+        X_plot = np.linspace(min_interval, max_interval, 500)[:, np.newaxis]
+    kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
+    Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
+    return list(zip(X_plot.ravel(), Y_plot))
+
+
+""" 
 def format_proba_density(data, sample_weight=None):
     data = np.array(data)
     if len(data) == 0:
@@ -81,7 +107,7 @@ def format_proba_density(data, sample_weight=None):
     kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
     Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
     return list(zip(X_plot.ravel(), Y_plot))
-
+"""
 
 class SurrogateModel:
 

@@ -7,9 +7,7 @@
     },
 
     "selectableFromDataset": "original",
-
     "kind": "PYTHON",
-    
     "inputRoles" : [
         {
             "name": "original",
@@ -42,17 +40,76 @@
 
     "params": [
         {
-            "name": "metric_list",
+            "name": "prediction_column_available",
+            "label": "Prediction column available",
+            "description": "Use this option if your data is used for a ML task and has a column with predictions",
+            "type": "BOOLEAN"
+        },
+        {
+            "name": "metric_list_without_prediction",
             "label": "Metrics",
             "type": "MULTISELECT",
             "selectChoices": [
                 { "value": "drift_score", "label": "Drift score"},
                 { "value": "feature_importance", "label": "Feature importance"}
             ],
-            "defaultValue": ["drift_score"]
+            "defaultValue": ["drift_score"],
+            "visibilityCondition": "!model.prediction_column_available"
+        },
+        {
+            "name": "metric_list_with_prediction",
+            "label": "Metrics",
+            "type": "MULTISELECT",
+            "selectChoices": [
+                { "value": "drift_score", "label": "Drift score"},
+                { "value": "fugacity", "label": "Fugacity", "Description":  "Prediction density"},
+                { "value": "feature_importance", "label":  "Feature importance"}
+            ],
+            "defaultValue": ["drift_score"],
+            "visibilityCondition": "model.prediction_column_available"
+        },
+        {
+            "name": "learning_task",
+            "label": "Type of learning task",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "CLASSIFICATION",
+                    "label": "Classification"
+                },
+                {
+                    "value": "REGRESSION",
+                    "label": "Regression"
+                }
+            ],
+            "defaultValue": "CLASSIFICATION"
+        },
+        {
+            "name": "target_variable",
+            "label" : "Prediction column",
+            "type": "COLUMN",
+            "mandatory" : true,
+            "columnRole": "original",
+            "visibilityCondition": "model.prediction_column_available"
+        },
+        {
+            "name": "output_format",
+            "label": "Output format",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "single_column",
+                    "label": "Single JSON column per metric"
+                },
+                {
+                    "value": "multiple_columns",
+                    "label": "Multiple columns per metric"
+                }
+            ],
+            "defaultValue": "single_column",
+            "visibilityCondition": "model.prediction_column_available"
         }
     ],
-
     "resourceKeys": []
 
 }

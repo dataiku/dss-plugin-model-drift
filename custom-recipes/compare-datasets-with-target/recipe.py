@@ -74,10 +74,17 @@ if 'drift_score' in metric_list:
     column_description_dict['drift_score'] = 'The drift score (between 0 and 1) is low if the new dataset and the original dataset are indistinguishable.'
 
 if 'fugacity' in metric_list:
-    fugacity = drifter.get_fugacity()
-    for k,v in fugacity.items():
-        new_df[k] = [v]
-        column_description_dict[k] = 'The difference between the ratio percentage of this class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'
+    if drifter.get_prediction_type() == 'CLASSIFICATION':
+        fugacity = drifter.get_classification_fugacity()
+        for k,v in fugacity.items():
+            new_df[k] = [v]
+            column_description_dict[k] = 'The difference between the ratio percentage of this class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'
+    else: # regression
+        fugacity, bin_description = drifter.get_regression_fugacity()
+        for k, v in enumerate(fugacity.items()):
+            new_df[v[0]] = [v[1].values[0]]
+            column_description_dict[v[0]] = bin_description[k]
+
 
 if 'feature_importance' in metric_list:
     feature_importance = drifter.get_drift_feature_importance()
@@ -87,6 +94,9 @@ if 'feature_importance' in metric_list:
     new_df['drift_feature_importance'] = [json.dumps(feat_dict)]
     column_description_dict['drift_feature_importance'] = 'List of features that have been drifted the most, with their % of importance'
 
+output_dataset.write_with_schema(new_df)
+
+""" 
 try:
     existing_df = output_dataset.get_dataframe()
     if schema_are_compatible(existing_df, new_df):
@@ -108,6 +118,6 @@ except Exception as e:
         output_dataset.write_with_schema(new_df)
     else:
         raise_(Exception, "Fail to write to dataset: {}".format(e), sys.exc_info()[2])
-
+"""
 
 set_column_description(output_dataset, column_description_dict)

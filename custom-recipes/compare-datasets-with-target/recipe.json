@@ -71,19 +71,7 @@
                 { "value": "fugacity", "label": "Fugacity"},
                 { "value": "feature_importance", "label":  "Feature importance"}
             ],
-            "defaultValue": ["drift_score"],
-            "visibilityCondition": "model.learning_task == 'CLASSIFICATION'"
-        },
-        {
-            "name": "metric_list",
-            "label": "Metrics",
-            "type": "MULTISELECT",
-            "selectChoices": [
-                { "value": "drift_score", "label": "Drift score"},
-                { "value": "feature_importance", "label": "Feature importance"}
-            ],
-            "defaultValue": ["drift_score"],
-            "visibilityCondition": "model.learning_task == 'REGRESSION'"
+            "defaultValue": ["drift_score"]
         }
 
     ],

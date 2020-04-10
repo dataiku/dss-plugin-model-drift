@@ -4,10 +4,12 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
-
+from sklearn.preprocessing import KBinsDiscretizer
 from dku_data_drift.preprocessing import Preprocessor
 from dku_data_drift.dataframe_helpers import not_enough_data
 from dku_data_drift.model_tools import format_proba_density
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -154,12 +156,12 @@ class DriftAnalyzer:
                 kde_new = format_proba_density(predictions_by_class.get(label).get(FROM_NEW))
                 cleaned_label = label.replace('proba_', 'Class ')
                 kde_dict[cleaned_label] = {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}
-            fugacity = self.get_fugacity(reformat=True)
+            fugacity = self.get_classification_fugacity(reformat=True)
             label_list = [label for label in fugacity[0].keys() if label != 'source']
 
             return kde_dict, fugacity, label_list
         else:
-            fugacity = self.get_fugacity()
+            fugacity = self.get_classification_fugacity()
             label_list = fugacity['class'].unique()
             return None, fugacity, label_list
 
@@ -172,10 +174,55 @@ class DriftAnalyzer:
             raise ValueError('Can not use this function with a {} mode.'.format(self.prediction_type))
 
         prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
-        kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values)
-        kde_new = format_proba_density(prediction_dict.get(FROM_NEW).values)
+        return prediction_dict
+        kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values, proba=False, cast_to_int=False)
+        kde_new = format_proba_density(prediction_dict.get(FROM_NEW).values,  proba=False, cast_to_int=False)
         kde_dict= {'Prediction': {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}} # to have the same format as in classif case
         return kde_dict
+
+    def get_regression_prediction_kde(self):
+
+        if not self.has_predictions:
+            raise ValueError('No target was defined at fit phase.')
+
+        if self.prediction_type != 'REGRESSION':
+            raise ValueError('Can not use this function with a {} mode.'.format(self.prediction_type))
+
+        prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
+        kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values, proba=False, cast_to_int=False)
+        kde_new = format_proba_density(prediction_dict.get(FROM_NEW).values,  proba=False, cast_to_int=False)
+        kde_dict= {'Prediction': {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}} # to have the same format as in classif case
+        return kde_dict
+
+    def get_regression_fugacity(self):
+
+        kde_dict = self.get_regression_prediction_kde()
+        new = kde_dict.get('Prediction').get('new')
+        old = kde_dict.get('Prediction').get('original')
+        #new_arr = np.array(new).T
+        old_arr = np.array(old).T
+        df = pd.DataFrame(new, columns=['val_new', 'new_density'])
+        df['val_old'] = old_arr[0]
+        df['old_density'] = old_arr[1]
+        kb = KBinsDiscretizer(n_bins=10, encode='ordinal')
+        df['old_bin'] = kb.fit_transform(df['val_old'].values.reshape(-1, 1)).reshape(-1, ).astype(int)
+        df['new_bin'] = kb.transform(df['val_new'].values.reshape(-1, 1)).reshape(-1, ).astype(int)
+        full_density_old = df.old_density.sum()
+        full_density_new = df.new_density.sum()
+        fuga_old = 100 * df.groupby('old_bin').old_density.sum() / full_density_old
+        fuga_new = 100 * df.groupby('new_bin').new_density.sum() / full_density_new
+        fugacity_diff = np.around(fuga_new - fuga_old, decimals=5)
+        fuga_diff_df = pd.DataFrame(fugacity_diff.to_dict(), index=[0])
+        fuga_diff_columns = ['fugacity_diff_bin_{}'.format(col) for col in fuga_diff_df.columns]
+        fuga_diff_df.columns = fuga_diff_columns
+        e = '-inf'
+        lst = []
+        for edge in kb.bin_edges_[0][:-1]:
+            lst.append('from {0} to {1}'.format(e, round(edge, 2)))
+            e = round(edge, 3)
+        lst.append('from {0} to -inf'.format(round(kb.bin_edges_[0][-2], 2)))
+
+        return fuga_diff_df, lst
 
 
     def _prepare_data_for_drift_model(self, new_df, original_df):
@@ -306,7 +353,8 @@ class DriftAnalyzer:
             new_prediciton_df = self._new_df.loc[:, [self.target]]
             return {FROM_ORIGINAL: original_prediction_df, FROM_NEW: new_prediciton_df}
 
-    def get_fugacity(self, reformat=False):
+
+    def get_classification_fugacity(self, reformat=False):
         """
         For classification only, this compute the ratio of each predicted label
 
