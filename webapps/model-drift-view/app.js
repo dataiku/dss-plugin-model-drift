@@ -64,9 +64,13 @@ function markRunning(running) {
 }
 
 function draw(data) {
-    drawFugacity(data['fugacity']);
-    drawKDE(data['kde']);
-    drawFeatureImportance(data['feature_importance']);
+    if (data.type == "REGRESSION"){
+        drawKDE(data['kde']);
+    } else {
+        drawFugacity(data['fugacity']);
+        drawKDE(data['kde']);
+        drawFeatureImportance(data['feature_importance']);
+    }
 }
 
 function drawFugacity(data) {

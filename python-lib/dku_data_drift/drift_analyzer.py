@@ -117,10 +117,12 @@ class DriftAnalyzer:
         feature_importance_metrics = self._get_feature_importance_metrics()
 
         if self.prediction_type == 'REGRESSION':
+            logger.info("Compute regression drift metrics for regression")
             kde_dict = self.get_regression_prediction_metrics()
             fugacity_metrics = {}
             label_list = []
         elif self.prediction_type == 'CLASSIFICATION':
+            logger.info("Compute classification drift metrics for classification")
             kde_dict, fugacity_metrics, label_list = self.get_classification_prediction_metrics()
         else:
             raise ValueError('Prediction type not defined.')
