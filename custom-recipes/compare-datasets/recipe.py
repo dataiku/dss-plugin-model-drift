@@ -26,7 +26,7 @@ new_df = new_ds.get_dataframe(limit=MAX_NUM_ROW)
 
 # Retrieve the output dataset
 output_names = get_output_names_for_role('main_output')
-output_datasets = [dataiku.Dataset(name, ignore_flow=True) for name in output_names]
+output_datasets = [dataiku.Dataset(name) for name in output_names]
 output_dataset = output_datasets[0]
 
 
@@ -41,6 +41,8 @@ if prediction_column_available:
     target_variable = get_recipe_config().get('target_variable')
     if target_variable is None:
         raise ValueError('Target variable must be defined.')
+    output_format = get_recipe_config().get('output_format', 'multiple_columns')
+
 else:
     metric_list = get_recipe_config().get('metric_list_without_prediction')
 
@@ -76,14 +78,25 @@ if 'drift_score' in metric_list:
 if 'fugacity' in metric_list:
     if drifter.get_prediction_type() == 'CLASSIFICATION':
         fugacity = drifter.get_classification_fugacity()
-        for k,v in fugacity.items():
-            new_df[k] = [v]
-            column_description_dict[k] = 'The difference between the ratio percentage of this class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'
+        if output_format == 'multiple_columns':
+            for k,v in fugacity.items():
+                new_df[k] = [v]
+                column_description_dict[k] = 'The difference between the ratio percentage of this class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'
+        else:
+            new_df['fugacity'] = json.dumps(fugacity)
+            column_description_dict['fugacity'] = 'The difference between the ratio percentage of a class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'
     else: # regression
         fugacity, bin_description = drifter.get_regression_fugacity()
-        for k, v in enumerate(fugacity.items()):
-            new_df[v[0]] = [v[1].values[0]]
-            column_description_dict[v[0]] = bin_description[k]
+        if output_format == 'multiple_columns':
+            for k, v in enumerate(fugacity.items()):
+                new_df[v[0]] = [v[1].values[0]]
+                column_description_dict[v[0]] = bin_description[k]
+        else:
+            new_df['fugacity'] = json.dumps(fugacity.iloc[0].to_dict())
+            proper_bin_description = ', '.join(
+                ['bin {0}: {1}'.format(bin_index, bin_desc) for bin_index, bin_desc in enumerate(bin_description)])
+            column_description_dict['fugacity'] = proper_bin_description
+
 
 if 'feature_importance' in metric_list:
     feature_importance = drifter.get_drift_feature_importance()

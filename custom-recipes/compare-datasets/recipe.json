@@ -82,7 +82,8 @@
                     "label": "Regression"
                 }
             ],
-            "defaultValue": "CLASSIFICATION"
+            "defaultValue": "CLASSIFICATION",
+            "visibilityCondition": "model.prediction_column_available"
         },
         {
             "name": "target_variable",

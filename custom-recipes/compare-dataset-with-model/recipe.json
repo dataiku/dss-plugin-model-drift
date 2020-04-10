@@ -1,6 +1,6 @@
 {
     "meta": {
-        "label": "Compute data drift of a model deployed on the flow",
+        "label": "Compute data drift of a deployed model",
         "description": "Measure a potential data drift between the original training data of a model and a new dataset. Support regression and classification",
         "icon": "icon-puzzle-piece",
         "displayOrderRank": 1
@@ -48,6 +48,33 @@
             "label": "Model version",
             "type": "SELECT",
             "getChoicesFromPython": true
+        },
+        {
+            "name": "metric_list",
+            "label": "Metrics",
+            "type": "MULTISELECT",
+            "selectChoices": [
+                { "value": "drift_score", "label": "Drift score"},
+                { "value": "fugacity", "label": "Fugacity", "Description":  "Prediction density"},
+                { "value": "feature_importance", "label": "Feature importance"}
+            ],
+            "defaultValue": ["drift_score"]
+        },
+        {
+            "name": "output_format",
+            "label": "Output format",
+            "type": "SELECT",
+            "selectChoices": [
+                {
+                    "value": "single_column",
+                    "label": "Single JSON column per metric"
+                },
+                {
+                    "value": "multiple_columns",
+                    "label": "Multiple columns per metric"
+                }
+            ],
+            "defaultValue": "single_column"
         }
     ],
 

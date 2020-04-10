@@ -174,7 +174,6 @@ class DriftAnalyzer:
             raise ValueError('Can not use this function with a {} mode.'.format(self.prediction_type))
 
         prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
-        return prediction_dict
         kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values, proba=False, cast_to_int=False)
         kde_new = format_proba_density(prediction_dict.get(FROM_NEW).values,  proba=False, cast_to_int=False)
         kde_dict= {'Prediction': {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}} # to have the same format as in classif case
@@ -217,10 +216,13 @@ class DriftAnalyzer:
         fuga_diff_df.columns = fuga_diff_columns
         e = '-inf'
         lst = []
-        for edge in kb.bin_edges_[0][:-1]:
+        for edge in kb.bin_edges_[0][1:-1]:
             lst.append('from {0} to {1}'.format(e, round(edge, 2)))
             e = round(edge, 3)
-        lst.append('from {0} to -inf'.format(round(kb.bin_edges_[0][-2], 2)))
+
+        print(')))))))))', kb.bin_edges_[0][-2])
+        print(')))))))))', kb.bin_edges_[0][-1])
+        lst.append('from {0} to +inf'.format(round(kb.bin_edges_[0][-2], 2)))
 
         return fuga_diff_df, lst
 
