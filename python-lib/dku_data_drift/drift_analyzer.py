@@ -9,6 +9,9 @@ from dku_data_drift.preprocessing import Preprocessor
 from dku_data_drift.dataframe_helpers import not_enough_data
 from dku_data_drift.model_tools import format_proba_density
 
+# TODO: Remove
+import joblib
+
 logger = logging.getLogger(__name__)
 
 ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
@@ -174,9 +177,23 @@ class DriftAnalyzer:
             raise ValueError('Can not use this function with a {} mode.'.format(self.prediction_type))
 
         prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
-        kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values)
-        kde_new = format_proba_density(prediction_dict.get(FROM_NEW).values)
-        kde_dict= {'Prediction': {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}} # to have the same format as in classif case
+        original_serie = prediction_dict.get(FROM_ORIGINAL).values
+        new_serie = prediction_dict.get(FROM_NEW).values
+        min_support = float(min(min(original_serie), min(new_serie)))
+        max_support = float(max(max(original_serie), max(new_serie)))
+        logger.info("Original serie: {}".format(np.std(original_serie)))
+        logger.info("New serie: {}".format(np.std(new_serie)))
+        logger.info("Computed histogram support: [{},{}]".format(min_support, max_support))
+        kde_original = format_proba_density(original_serie, min_support=min_support, max_support=max_support)
+        kde_new = format_proba_density(new_serie, min_support=min_support, max_support=max_support)
+        kde_dict= {
+            'Prediction': {
+                FROM_ORIGINAL: kde_original,
+                FROM_NEW: kde_new,
+                "min_support": min_support,
+                "max_support": max_support
+            }
+        }
         return kde_dict
 
 

@@ -64,8 +64,15 @@ function markRunning(running) {
 }
 
 function draw(data) {
+    // TODO: Create a switch and case on data.type
+    console.log("Debug data:");
+    console.log(data);
     if (data.type == "REGRESSION"){
-        drawKDE(data['kde']);
+        d3.select("#fugacity_div").select("div").remove();
+        console.log("Debug data[kde]");
+        console.log(data['kde']);
+        draw_KDE_regression(data['kde']);
+        // drawFeatureImportance(data['feature_importance']);
     } else {
         drawFugacity(data['fugacity']);
         drawKDE(data['kde']);
@@ -102,6 +109,8 @@ function json2table(json, classes) {
 }
 
 function drawKDE(data) {
+    console.log("This is the data object");
+    console.log(data);
     d3.select("#kde-chart").select("svg").remove();
     d3.select("#label-list").selectAll("option").remove();
     
@@ -137,8 +146,14 @@ function drawKDE(data) {
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
+    console.log("Labels:")
+    console.log(labels)
+
     let density1 = data[labels[0]]['original'];
     let density2 = data[labels[0]]['new'];
+
+    console.log("Check that the following variable exists:")
+    console.log(density1)
 
     density1_array = density1.map(x=>x[1])
     density2_array = density2.map(x=>x[1])
@@ -245,6 +260,151 @@ function drawKDE(data) {
     });
 }
 
+function draw_KDE_regression(data) {
+    console.log("This is the data object");
+    console.log(data);
+    d3.select("#kde-chart").select("svg").remove();
+    d3.select("#label-list").selectAll("option").remove();
+
+    let margin = {top: 30, right: 30, bottom: 30, left: 50};
+    let width = 550 - margin.left - margin.right;
+    let height = 450 - margin.top - margin.bottom;
+
+    // append the svg object to the body of the page
+    let svg = d3.select("#kde-chart")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    // List of groups (here I have one group per column)
+    let labels = Object.keys(data);
+
+    var minSupport = data.Prediction.min_support;
+    var maxSupport = data.Prediction.max_support;
+
+    // add the x Axis
+    let x = d3.scaleLinear()
+        .domain([minSupport, maxSupport])
+        .range([minSupport, width]);
+    svg.append("g")
+        .attr("transform", "translate("+ minSupport +"," + height + ")")
+        .call(d3.axisBottom(x));
+
+    console.log("Labels:")
+    console.log(labels)
+
+    let density1 = data[labels[0]]['original'];
+    let density2 = data[labels[0]]['new'];
+
+    density1_array = density1.map(x=>x[1])
+    density2_array = density2.map(x=>x[1])
+
+    // first and last value of array must be zero otherwise the color fill will mess up
+    density1[0] = [minSupport,0];
+    density2[0] = [minSupport,0];
+    density1[density1.length - 1] = [maxSupport, 0];
+    density2[density2.length - 1] = [maxSupport, 0];
+
+    // add the y Axis
+    let maxY = Math.max.apply(Math, density1_array.concat(density2_array));
+    let y = d3.scaleLinear()
+        .range([height, 0])
+        .domain([0, maxY*1.1]);
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Plot the area
+    let curve1 = svg.append("path")
+        .attr("class", "mypath")
+        .datum(density1)
+        .attr("fill", "#2b67ff")
+        .attr("fill-opacity", ".4")
+        .attr("stroke", "#2b67ff")
+        .attr("stroke-width", 2)
+        .attr("stroke-linejoin", "round")
+        .attr("d", d3.line()
+            .curve(d3.curveBasis)
+            .x(d => x(d[0]))
+            .y(d => y(d[1]))
+        );
+
+    // Plot the area
+    let curve2 = svg.append("path")
+        .attr("class", "mypath")
+        .datum(density2)
+        .attr("fill", "#ff832b")
+        .attr("fill-opacity", ".4")
+        .attr("stroke", "#ff832b")
+        .attr("stroke-width", 2)
+        .attr("stroke-linejoin", "round")
+        .attr("d", d3.line()
+            .curve(d3.curveBasis)
+            .x(d => x(d[0]))
+            .y(d => y(d[1]))
+        );
+
+    // Handmade legend
+    svg.append("circle").attr("cx",280).attr("cy",10).attr("r", 6).style("fill", "#2b67ff")
+    svg.append("circle").attr("cx",280).attr("cy",40).attr("r", 6).style("fill", "#ff832b")
+    svg.append("text").attr("x", 300).attr("y", 10).text("Test dataset").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", 300).attr("y", 40).text("Input dataset").style("font-size", "15px").attr("alignment-baseline","middle")
+    // Add X axis label:
+    svg.append("text")
+        .attr("text-anchor", "end")
+        .attr("x", width/2 + 90)
+        .attr("y", height + 29)
+        .attr("font-size", 12)
+        .text("feature axis");
+
+    // A function that update the chart when slider is moved?
+    function updateChart(selectedGroup) {
+
+        // recompute density estimation
+        density1 = data[selectedGroup]['original'];
+        density2 = data[selectedGroup]['new'];
+        // first and last value of array must be zero otherwise the color fill will mess up
+        var minSupport = data.Prediction.min_support;
+        var maxSupport = data.Prediction.max_support;
+        density1[0] = [minSupport,0];
+        density2[0] = [minSupport,0];
+        density1[density1.length - 1] = [maxSupport, 0];
+        density2[density2.length - 1] = [maxSupport, 0];
+        density1_array = density1.map(x=>x[1])
+        density2_array = density2.map(x=>x[1])
+        // add the y Axis
+        maxY = Math.max.apply(Math, density1_array.concat(density2_array));
+        y.domain([0, maxY*1.1]);
+
+        // update the chart
+        curve1
+            .datum(density1)
+            .transition()
+            .duration(1000)
+            .attr("d",    d3.line()
+            .curve(d3.curveBasis)
+                .x(d => x(d[0]))
+                .y(d => y(d[1]))
+            );
+        curve2
+            .datum(density2)
+            .transition()
+            .duration(1000)
+            .attr("d",    d3.line()
+            .curve(d3.curveBasis)
+                .x(d => x(d[0]))
+                .y(d => y(d[1]))
+            );
+    }
+
+    // Listen to the slider?
+    d3.select("#label-list").on("change", function(d) {
+        selectedGroup = this.value
+        updateChart(selectedGroup)
+    });
+}
+
 function getMaxX(data) {
   return data.reduce((max, p) => p['drift_model'] > max ? p['drift_model'] : max, data[0]['drift_model']);
 }
@@ -254,11 +414,15 @@ function getMaxY(data) {
 }
 
 function drawFeatureImportance(data) {
+
     d3.select("#feat-imp-plot").select("svg").remove();
 
     var values = Object.keys(data).map(function(key){
         return data[key];
     })
+
+    console.log("Debug feature importance values:")
+    console.log(values)
 
     let maxX = getMaxX(values);
     let maxY = getMaxY(values);
