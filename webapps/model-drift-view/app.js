@@ -68,7 +68,8 @@ function draw(data) {
     console.log("Debug data:");
     console.log(data);
     if (data.type == "REGRESSION"){
-        d3.select("#fugacity_div").select("div").remove();
+        d3.select("#fugacity_div").selectAll("div").remove();
+        d3.select("#kde_container_div").select("h3").remove();
         console.log("Debug data[kde]");
         console.log(data['kde']);
         draw_KDE_regression(data['kde']);
