@@ -32,6 +32,7 @@ output_dataset = output_datasets[0]
 
 target_variable = None
 learning_task = None
+output_format = 'single_column'
 prediction_column_available = get_recipe_config().get('prediction_column_available')
 if prediction_column_available:
     metric_list = get_recipe_config().get('metric_list_with_prediction')
@@ -41,7 +42,7 @@ if prediction_column_available:
     target_variable = get_recipe_config().get('target_variable')
     if target_variable is None:
         raise ValueError('Target variable must be defined.')
-    output_format = get_recipe_config().get('output_format', 'multiple_columns')
+    output_format = get_recipe_config().get('output_format', 'single_column')
 
 else:
     metric_list = get_recipe_config().get('metric_list_without_prediction')

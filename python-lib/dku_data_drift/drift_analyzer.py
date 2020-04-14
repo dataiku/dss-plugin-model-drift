@@ -10,7 +10,6 @@ from dku_data_drift.dataframe_helpers import not_enough_data
 from dku_data_drift.model_tools import format_proba_density
 
 
-
 logger = logging.getLogger(__name__)
 
 ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
@@ -65,7 +64,7 @@ class DriftAnalyzer:
             self.target = self._model_accessor.get_target_variable()
             self.prediction_type = self._model_accessor.get_prediction_type()
             original_df = self._model_accessor.get_original_test_df()
-            df = self.prepare_data_when_having_target(new_df, original_df)
+            df = self.prepare_data_when_having_model(new_df, original_df)
         elif model_accessor is None and original_df is not None and target is not None:
             self.has_predictions = True
             self.target = target
@@ -85,6 +84,18 @@ class DriftAnalyzer:
 
         logger.info("Fitting the drift model...")
         self.drift_clf.fit(drift_train_X, drift_train_Y)
+
+
+    def prepare_data_when_having_model(self, new_df, original_df):
+        logger.info('Prepare data with model')
+
+        if self.target not in original_df:
+            raise ValueError('The original dataset does not contain target "{}".'.format(self.target))
+
+        self._new_df = new_df
+        self._original_df = original_df
+        original_df_without_target = original_df.drop(self.target, axis=1)
+        return self._prepare_data_for_drift_model(new_df, original_df_without_target)
 
     def prepare_data_when_having_target(self, new_df, original_df):
         logger.info('Prepare data with target for drift model')
@@ -119,7 +130,7 @@ class DriftAnalyzer:
         feature_importance_metrics = self._get_feature_importance_metrics()
 
         if self.prediction_type == 'REGRESSION':
-            kde_dict = self.get_regression_prediction_metrics()
+            kde_dict = self.get_regression_prediction_kde()
             fugacity_metrics = {}
             label_list = []
         elif self.prediction_type == 'CLASSIFICATION':
@@ -165,20 +176,6 @@ class DriftAnalyzer:
             label_list = fugacity['class'].unique()
             return None, fugacity, label_list
 
-    def get_regression_prediction_metrics(self):
-
-        if not self.has_predictions:
-            raise ValueError('No target was defined at fit phase.')
-
-        if self.prediction_type != 'REGRESSION':
-            raise ValueError('Can not use this function with a {} mode.'.format(self.prediction_type))
-
-        prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
-        kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values, proba=False, cast_to_int=False)
-        kde_new = format_proba_density(prediction_dict.get(FROM_NEW).values,  proba=False, cast_to_int=False)
-        kde_dict= {'Prediction': {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}} # to have the same format as in classif case
-        return kde_dict
-
     def get_regression_prediction_kde(self):
 
         if not self.has_predictions:
@@ -194,11 +191,14 @@ class DriftAnalyzer:
         return kde_dict
 
     def get_regression_fugacity(self):
+        """
+        TODO refactor
+
+        """
 
         kde_dict = self.get_regression_prediction_kde()
         new = kde_dict.get('Prediction').get('new')
         old = kde_dict.get('Prediction').get('original')
-        #new_arr = np.array(new).T
         old_arr = np.array(old).T
         df = pd.DataFrame(new, columns=['val_new', 'new_density'])
         df['val_old'] = old_arr[0]
@@ -220,10 +220,7 @@ class DriftAnalyzer:
             lst.append('from {0} to {1}'.format(e, round(edge, 2)))
             e = round(edge, 3)
 
-        print(')))))))))', kb.bin_edges_[0][-2])
-        print(')))))))))', kb.bin_edges_[0][-1])
         lst.append('from {0} to +inf'.format(round(kb.bin_edges_[0][-2], 2)))
-
         return fuga_diff_df, lst
 
 
@@ -286,29 +283,24 @@ class DriftAnalyzer:
 
         :return:
         """
-        if self._model_accessor is None:
-            drift_feature_importance_df = self.get_drift_feature_importance()
-            topn_drift_feature = drift_feature_importance_df.to_dict()['importance']
-            return {'drift_model': topn_drift_feature}
-        else:
-            original_feature_importance_df = self.get_original_feature_importance()
-            drift_feature_importance_df = self.get_drift_feature_importance()
-            topn_drift_feature = drift_feature_importance_df.to_dict()['importance']
-            topn_original_feature = original_feature_importance_df.to_dict()['importance']
-            feature_importance_metrics = []
-            for feature in set(topn_original_feature.keys()).union(set(topn_drift_feature.keys())):
-                drift_feat_rank = topn_drift_feature.get(feature)
-                original_feat_rank = topn_original_feature.get(feature)
-                if drift_feat_rank is None:
-                    logger.warn('Feature {} does not exist in the most important features of the drift model.'.format(feature))
-                if original_feat_rank is None:
-                    logger.warn('Feature {} does not exist in the most important features of the orignal model.'.format(feature))
-                feature_importance_metrics.append({
-                    'original_model': original_feat_rank if original_feat_rank else 0.01,
-                     'drift_model': drift_feat_rank if drift_feat_rank else 0.01,
-                     'feature': feature
-                })
-            return feature_importance_metrics
+        original_feature_importance_df = self.get_original_feature_importance()
+        drift_feature_importance_df = self.get_drift_feature_importance()
+        topn_drift_feature = drift_feature_importance_df.to_dict()['importance']
+        topn_original_feature = original_feature_importance_df.to_dict()['importance']
+        feature_importance_metrics = []
+        for feature in set(topn_original_feature.keys()).union(set(topn_drift_feature.keys())):
+            drift_feat_rank = topn_drift_feature.get(feature)
+            original_feat_rank = topn_original_feature.get(feature)
+            if drift_feat_rank is None:
+                logger.warn('Feature {} does not exist in the most important features of the drift model.'.format(feature))
+            if original_feat_rank is None:
+                logger.warn('Feature {} does not exist in the most important features of the orignal model.'.format(feature))
+            feature_importance_metrics.append({
+                'original_model': original_feat_rank if original_feat_rank else 0.01,
+                 'drift_model': drift_feat_rank if drift_feat_rank else 0.01,
+                 'feature': feature
+            })
+        return feature_importance_metrics
     
     def get_drift_score(self, output_raw_score=False):
 
