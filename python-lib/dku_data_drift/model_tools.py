@@ -67,7 +67,6 @@ def mroc_auc_score(y_true, y_predictions, sample_weight=None):
         for j in classes
         if i != j)
 
-
 def format_proba_density(data, sample_weight=None, min_support=0, max_support=100):
     """
     Estimate the density distribution of the target 1-dimensional data array.
@@ -98,7 +97,6 @@ def format_proba_density(data, sample_weight=None, min_support=0, max_support=10
     kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
     Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
     return list(zip(X_plot.ravel(), Y_plot))
-
 
 class SurrogateModel:
 

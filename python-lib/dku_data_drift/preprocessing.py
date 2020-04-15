@@ -1,15 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import os
 import sys
 import random
 from collections import Counter
 from datetime import datetime
 import logging
-
 import numpy as np
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 EPOCH = datetime(1900, 1, 1)

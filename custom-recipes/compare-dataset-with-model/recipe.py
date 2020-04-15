@@ -49,9 +49,16 @@ version_id = get_recipe_config().get('version_id')
 if version_id is None:
     raise ValueError('Please choose a model version.')
 
+metric_list = get_recipe_config().get('metric_list')
+if len(metric_list) == 0 or metric_list is None:
+    raise ValueError('Please choose at least one metric.')
+logger.info('Chosen metrics: ', metric_list)
+
+output_format = get_recipe_config().get('output_format', 'multiple_columns')
+
 # Retrieve the output dataset for metrics and score
 output_names = get_output_names_for_role('main_output')
-output_datasets = [dataiku.Dataset(name, ignore_flow=True) for name in output_names]
+output_datasets = [dataiku.Dataset(name) for name in output_names]
 output_dataset = output_datasets[0]
 
 # Access the model
@@ -62,14 +69,6 @@ model_accessor = ModelAccessor(model_handler)
 drifter = DriftAnalyzer(prediction_type=None)
 target = model_accessor.get_target_variable()
 drifter.fit(new_df, model_accessor=model_accessor)
-
-if drifter.get_prediction_type() == 'CLASSIFICATION':
-    metric_list = ['drift_score', 'fugacity', 'feature_importance']
-elif drifter.get_prediction_type() == 'REGRESSION':
-    metric_list = ['drift_score', 'feature_importance']
-else:
-    metric_list = ['drift_score']
-
 
 # Write the drift score and metrics
 
@@ -89,49 +88,61 @@ if 'drift_score' in metric_list:
     column_description_dict['drift_score'] = 'The drift score (between 0 and 1) is low if the new dataset and the original dataset are indistinguishable.'
 
 if 'fugacity' in metric_list:
-    fugacity = drifter.get_fugacity()
-    for k,v in fugacity.items():
-        new_df[k] = [v]
-        column_description_dict[k] = '{} is the difference between the ratio percentage of this class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'.format(k)
+    if drifter.get_prediction_type() == 'CLASSIFICATION':
+        fugacity = drifter.get_classification_fugacity()
+        if output_format == 'multiple_columns':
+            for k,v in fugacity.items():
+                new_df[k] = [v]
+                column_description_dict[k] = 'The difference between the ratio percentage of this class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'
+        else:
+            new_df['fugacity'] = json.dumps(fugacity)
+            column_description_dict['fugacity'] = 'The difference between the ratio percentage of a class in the new dataset compared to that in the original dataset. Positive means there is an increase and vice versa'
+    else: # regression
+        fugacity, bin_description = drifter.get_regression_fugacity()
+        if output_format == 'multiple_columns':
+            for k, v in enumerate(fugacity.items()):
+                new_df[v[0]] = [v[1].values[0]]
+                column_description_dict[v[0]] = bin_description[k]
+        else:
+            new_df['fugacity'] = json.dumps(fugacity.iloc[0].to_dict())
+            proper_bin_description = ', '.join(
+                ['bin {0}: {1}'.format(bin_index, bin_desc) for bin_index, bin_desc in enumerate(bin_description)])
+            column_description_dict['fugacity'] = proper_bin_description
 
 if 'feature_importance' in metric_list:
-    drift_feature_importance = drifter.get_drift_feature_importance()
-    feat_dict = {}
-    for feat, feat_info in drift_feature_importance[:10].iterrows():
-        feat_dict[feat] = round(feat_info.get('importance'), 2)
-    new_df['drift_feature_importance'] = [json.dumps(feat_dict)]
-    column_description_dict['drift_feature_importance'] = 'List of features that have been drifted the most, with their % of importance'
+    if output_format == 'multiple_columns':
+        drift_feature_importance = drifter.get_drift_feature_importance()
+        feat_dict = {}
+        for feat, feat_info in drift_feature_importance[:10].iterrows():
+            feat_dict[feat] = round(feat_info.get('importance'), 2)
+        new_df['drift_feature_importance'] = [json.dumps(feat_dict)]
+        column_description_dict['drift_feature_importance'] = 'List of features that have been drifted the most, with their % of importance'
 
-    original_feature_importance = drifter.get_original_feature_importance()
-    feat_dict = {}
-    for feat, feat_info in original_feature_importance[:10].iterrows():
-        feat_dict[feat] = round(feat_info.get('importance'), 2)
-    new_df['original_feature_importance'] = [json.dumps(feat_dict)]
-    column_description_dict['original_feature_importance'] = 'List of the most important features in the deployed model, with their % of importance'
-
-try:
-    existing_df = output_dataset.get_dataframe()
-    if schema_are_compatible(existing_df, new_df):
-        logger.info("Dataset is not empty, append the new metrics to the previous table")
-        concatenate_df = pd.concat([existing_df, new_df], axis=0)
-        fixed_columns = ['timestamp', 'model_id', 'version_id', 'train_date']
-        columns_order = fixed_columns + [col for col in concatenate_df.columns if col not in fixed_columns]
-        concatenate_df = concatenate_df[columns_order]
-        output_dataset.write_with_schema(concatenate_df)
+        original_feature_importance = drifter.get_original_feature_importance()
+        feat_dict = {}
+        for feat, feat_info in original_feature_importance[:10].iterrows():
+            feat_dict[feat] = round(feat_info.get('importance'), 2)
+        new_df['original_feature_importance'] = [json.dumps(feat_dict)]
+        column_description_dict['original_feature_importance'] = 'List of the most important features in the deployed model, with their % of importance'
     else:
-        logger.info("Schema not compatible, overwriting the metric table.")
-        fixed_columns = ['timestamp', 'model_id', 'version']
-        columns_order = fixed_columns + [col for col in new_df.columns if col not in fixed_columns]
-        new_df = new_df[columns_order]
-        output_dataset.write_with_schema(new_df)
 
-except Exception as e:
-    from future.utils import raise_
-    if "No column in schema" in str(e) or 'No JSON object could be decoded' in str(e):
-        logger.info("Dataset is empty, writing the new metrics in a new table")
-        output_dataset.write_with_schema(new_df)
-    else:
-        raise_(Exception, "Fail to write to dataset: {}".format(e), sys.exc_info()[2])
+        drift_feature_importance = drifter.get_drift_feature_importance()
+        tmp_dict_drift = {}
+        for feat, feat_info in drift_feature_importance[:10].iterrows():
+            tmp_dict_drift[feat] = round(feat_info.get('importance'), 2)
 
 
+        original_feature_importance = drifter.get_original_feature_importance()
+        tmp_dict_original = {}
+        for feat, feat_info in original_feature_importance[:10].iterrows():
+            tmp_dict_original[feat] = round(feat_info.get('importance'), 2)
+
+        feat_dict = {}
+        feat_dict['drift_feature_importance'] = tmp_dict_drift
+        feat_dict['original_feature_importance'] = tmp_dict_original
+
+        new_df['feature_importance'] = json.dumps(feat_dict)
+        column_description_dict['feature_importance'] = 'drift_feature_importance: List of features that have been drifted the most, with their % of importance. original_feature_importance: List of the most important features in the deployed model, with their % of importance'
+
+output_dataset.write_with_schema(new_df)
 set_column_description(output_dataset, column_description_dict)
