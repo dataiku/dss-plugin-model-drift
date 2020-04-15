@@ -64,20 +64,19 @@ function markRunning(running) {
 }
 
 function draw(data) {
-    // TODO: Create a switch and case on data.type
-    console.log("Debug data:");
-    console.log(data);
-    if (data.type == "REGRESSION"){
-        d3.select("#fugacity_div").selectAll("div").remove();
-        d3.select("#kde_container_div").select("h3").remove();
-        console.log("Debug data[kde]");
-        console.log(data['kde']);
-        draw_KDE_regression(data['kde']);
-        // drawFeatureImportance(data['feature_importance']);
-    } else {
-        drawFugacity(data['fugacity']);
-        drawKDE(data['kde']);
-        drawFeatureImportance(data['feature_importance']);
+    switch(data.type){
+        case "CLASSIFICATION":
+            drawFugacity(data['fugacity']);
+            drawKDE(data['kde']);
+            drawFeatureImportance(data['feature_importance']);
+            break;
+        case "REGRESSION":
+            d3.select("#fugacity_div").selectAll("div").remove();
+            d3.select("#kde_container_div").select("h3").remove();
+            draw_KDE_regression(data['kde']);
+            break;
+        default:
+            console.log("Check expected learning task types (REGRESSION, CLASSIFICATION...)")
     }
 }
 
@@ -110,8 +109,6 @@ function json2table(json, classes) {
 }
 
 function drawKDE(data) {
-    console.log("This is the data object");
-    console.log(data);
     d3.select("#kde-chart").select("svg").remove();
     d3.select("#label-list").selectAll("option").remove();
     
@@ -262,8 +259,6 @@ function drawKDE(data) {
 }
 
 function draw_KDE_regression(data) {
-    console.log("This is the data object");
-    console.log(data);
     d3.select("#kde-chart").select("svg").remove();
     d3.select("#label-list").selectAll("option").remove();
 
