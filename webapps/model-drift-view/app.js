@@ -74,9 +74,10 @@ function draw(data) {
             d3.select("#fugacity_div").selectAll("div").remove();
             d3.select("#kde_container_div").select("h3").remove();
             draw_KDE_regression(data['kde']);
+            drawFeatureImportance(data['feature_importance']);
             break;
         default:
-            console.log("Check expected learning task types (REGRESSION, CLASSIFICATION...)")
+            console.log("Expected learning types are CLASSIFICATION or REGRESSION.")
     }
 }
 
@@ -144,14 +145,8 @@ function drawKDE(data) {
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
-    console.log("Labels:")
-    console.log(labels)
-
     let density1 = data[labels[0]]['original'];
     let density2 = data[labels[0]]['new'];
-
-    console.log("Check that the following variable exists:")
-    console.log(density1)
 
     density1_array = density1.map(x=>x[1])
     density2_array = density2.map(x=>x[1])
@@ -288,9 +283,6 @@ function draw_KDE_regression(data) {
         .attr("transform", "translate("+ minSupport +"," + height + ")")
         .call(d3.axisBottom(x));
 
-    console.log("Labels:")
-    console.log(labels)
-
     let density1 = data[labels[0]]['original'];
     let density2 = data[labels[0]]['new'];
 
@@ -416,9 +408,6 @@ function drawFeatureImportance(data) {
     var values = Object.keys(data).map(function(key){
         return data[key];
     })
-
-    console.log("Debug feature importance values:")
-    console.log(values)
 
     let maxX = getMaxX(values);
     let maxY = getMaxY(values);
