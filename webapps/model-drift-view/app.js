@@ -278,9 +278,9 @@ function draw_KDE_regression(data) {
     // add the x Axis
     let x = d3.scaleLinear()
         .domain([minSupport, maxSupport])
-        .range([minSupport, width]);
+        .range([0, width]);
     svg.append("g")
-        .attr("transform", "translate("+ minSupport +"," + height + ")")
+        .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(x));
 
     let density1 = data[labels[0]]['original'];
@@ -344,53 +344,7 @@ function draw_KDE_regression(data) {
         .attr("x", width/2 + 90)
         .attr("y", height + 29)
         .attr("font-size", 12)
-        .text("feature axis");
-
-    // A function that update the chart when slider is moved?
-    function updateChart(selectedGroup) {
-
-        // recompute density estimation
-        density1 = data[selectedGroup]['original'];
-        density2 = data[selectedGroup]['new'];
-        // first and last value of array must be zero otherwise the color fill will mess up
-        var minSupport = data.Prediction.min_support;
-        var maxSupport = data.Prediction.max_support;
-        density1[0] = [minSupport,0];
-        density2[0] = [minSupport,0];
-        density1[density1.length - 1] = [maxSupport, 0];
-        density2[density2.length - 1] = [maxSupport, 0];
-        density1_array = density1.map(x=>x[1])
-        density2_array = density2.map(x=>x[1])
-        // add the y Axis
-        maxY = Math.max.apply(Math, density1_array.concat(density2_array));
-        y.domain([0, maxY*1.1]);
-
-        // update the chart
-        curve1
-            .datum(density1)
-            .transition()
-            .duration(1000)
-            .attr("d",    d3.line()
-            .curve(d3.curveBasis)
-                .x(d => x(d[0]))
-                .y(d => y(d[1]))
-            );
-        curve2
-            .datum(density2)
-            .transition()
-            .duration(1000)
-            .attr("d",    d3.line()
-            .curve(d3.curveBasis)
-                .x(d => x(d[0]))
-                .y(d => y(d[1]))
-            );
-    }
-
-    // Listen to the slider?
-    d3.select("#label-list").on("change", function(d) {
-        selectedGroup = this.value
-        updateChart(selectedGroup)
-    });
+        .text("Density probability function of the prediction");
 }
 
 function getMaxX(data) {
