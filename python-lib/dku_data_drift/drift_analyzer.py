@@ -182,7 +182,7 @@ class DriftAnalyzer:
             raise ValueError('No target was defined at fit phase.')
 
         if self.prediction_type != 'REGRESSION':
-            raise ValueError('Can not use this function with a {} mode.'.format(self.prediction_type))
+            raise ValueError('Can not use this function with a {} model.'.format(self.prediction_type))
 
         prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
         kde_original = format_proba_density(prediction_dict.get(FROM_ORIGINAL).values, proba=False, cast_to_int=False)
@@ -277,6 +277,27 @@ class DriftAnalyzer:
         else:
             raise ValueError('DriftAnalyzer needs a ModelAccessor as input.')
 
+    def get_riskiest_features(self, drift_feature_importance=None, original_feature_importance=None, ratio_threshold=0.6):
+        """
+        Return a list of features that users should check (ie. those that are on the top right quadrant of the feat imp plot)
+
+        :param drift_feature_importance:
+        :param original_feature_importance:
+        :return:
+        """
+        if drift_feature_importance is None:
+            drift_feature_importance = self.get_drift_feature_importance()
+        if original_feature_importance is None:
+            original_feature_importance = self.get_original_feature_importance()
+
+        original_feat_imp_threshold = ratio_threshold * max(original_feature_importance['importance'])
+        drift_feat_imp_threshold = ratio_threshold * max(drift_feature_importance['importance'])
+        print(original_feat_imp_threshold, drift_feat_imp_threshold)
+        top_original_features = original_feature_importance[original_feature_importance['importance'] > original_feat_imp_threshold].index
+        top_drift_features = drift_feature_importance[drift_feature_importance['importance'] > drift_feat_imp_threshold].index
+
+        return list(set(top_original_features).intersection(top_drift_features))
+
     def _get_feature_importance_metrics(self):
         """
         For visualisation purpose
@@ -361,7 +382,7 @@ class DriftAnalyzer:
         if not self.has_predictions:
             raise ValueError('No target was defined in the fit phase.')
 
-        prediction_dict = self.get_predictions_from_original_model()
+        prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
         original_prediction_df = prediction_dict.get(FROM_ORIGINAL)
         new_prediciton_df = prediction_dict.get(FROM_NEW)
 
