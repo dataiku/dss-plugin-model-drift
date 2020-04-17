@@ -3,6 +3,7 @@
 import datetime
 import dataiku
 
+
 def process_timestamp(timestamp):
     """
     Convert the timestamp to str date
@@ -18,6 +19,7 @@ def get_train_date(model_version, version_id):
         if v.get('versionId') == version_id:
             return process_timestamp((v.get('snippet').get('trainDate')))
     return None
+
 
 def set_column_description(dataset, column_description_dict):
     dataset_schema = dataset.read_schema()

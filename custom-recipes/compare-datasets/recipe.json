@@ -6,6 +6,8 @@
         "displayOrderRank": 3
     },
 
+    "paramsPythonSetup": "compute_original_columns.py",
+
     "selectableFromDataset": "original",
     "kind": "PYTHON",
     "inputRoles" : [
@@ -109,6 +111,12 @@
             ],
             "defaultValue": "single_column",
             "visibilityCondition": "model.prediction_column_available"
+        },
+        {
+            "name": "columns_to_remove",
+            "label": "Remove those columns from analysis",
+            "type": "MULTISELECT",
+            "getChoicesFromPython": true
         }
     ],
     "resourceKeys": []
