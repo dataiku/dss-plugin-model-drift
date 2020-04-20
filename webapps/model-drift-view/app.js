@@ -67,7 +67,7 @@ function draw(data) {
     switch(data.type){
         case "CLASSIFICATION":
             drawFugacity(data['fugacity']);
-            drawKDE(data['kde']);
+            draw_KDE_classification(data['kde']);
             drawFeatureImportance(data['feature_importance']);
             if (data.drift_accuracy > 0.1){
                 d3.select("#feature_importance_div").style('display', 'block');
@@ -87,7 +87,8 @@ function draw(data) {
             }
             break;
         default:
-            console.log("Expected learning types are CLASSIFICATION or REGRESSION.")
+            console.log("Value error for the type of learning task:")
+            console.log(data.type)
     }
 }
 
@@ -119,10 +120,16 @@ function json2table(json, classes) {
     return `<div><table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
-function drawKDE(data) {
+function draw_KDE_classification(data) {
+
     d3.select("#kde-chart").select("svg").remove();
     d3.select("#label-list").selectAll("option").remove();
-    
+
+    document.getElementById('kde_explanation').innerHTML =
+        'This chart represents the probability density estimation for a given prediction class when scoring '+
+        'both the test dataset and your input dataset. <br><br>Visually different probability density estimations '+
+        'indicate high data drift.'
+
     let margin = {top: 30, right: 30, bottom: 30, left: 50};
     let width = 550 - margin.left - margin.right;
     let height = 450 - margin.top - margin.bottom;
@@ -264,8 +271,13 @@ function drawKDE(data) {
 }
 
 function draw_KDE_regression(data) {
+
     d3.select("#kde-chart").select("svg").remove();
     d3.select("#label-list").selectAll("option").remove();
+
+    document.getElementById('kde_explanation').innerHTML =
+        'This chart represents the density estimation of the prediction values when scoring both the test dataset and '+
+        'your input dataset. <br><br>Visually different density estimations indicate high data drift.';
 
     let margin = {top: 30, right: 30, bottom: 30, left: 50};
     let width = 550 - margin.left - margin.right;
@@ -354,7 +366,7 @@ function draw_KDE_regression(data) {
         .attr("x", width/2 + 90)
         .attr("y", height + 29)
         .attr("font-size", 12)
-        .text("Density probability function of the prediction");
+        .text("Density probability function of the predicted values");
 }
 
 function getMaxX(data) {
