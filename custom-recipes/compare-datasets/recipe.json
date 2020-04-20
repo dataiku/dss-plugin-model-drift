@@ -113,7 +113,8 @@
         {
             "name": "columns_to_remove",
             "label": "Remove those columns from drift analysis",
-            "type": "COLUMNS"
+            "type": "COLUMNS",
+            "columnRole": "original"
         }
     ],
     "resourceKeys": []
