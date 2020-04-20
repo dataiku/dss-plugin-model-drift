@@ -69,12 +69,22 @@ function draw(data) {
             drawFugacity(data['fugacity']);
             drawKDE(data['kde']);
             drawFeatureImportance(data['feature_importance']);
+            if (data.drift_accuracy > 0.1){
+                d3.select("#feature_importance_div").style('display', 'block');
+            } else {
+                d3.select("#feature_importance_div").style('display', 'none');
+            }
             break;
         case "REGRESSION":
             d3.select("#fugacity_div").selectAll("div").remove();
             d3.select("#kde_container_div").select("h3").remove();
             draw_KDE_regression(data['kde']);
             drawFeatureImportance(data['feature_importance']);
+            if (data.drift_accuracy > 0.1){
+                d3.select("#feature_importance_div").style('display', 'block')
+            } else {
+                d3.select("#feature_importance_div").style('display', 'none');
+            }
             break;
         default:
             console.log("Expected learning types are CLASSIFICATION or REGRESSION.")
@@ -446,6 +456,6 @@ function drawFeatureImportance(data) {
         .attr("r", 6)
         .style("fill", "#2b67ff")
         .style("opacity", 1)
-    .on("mouseover", tipMouseover)
-     .on("mouseout", tipMouseout);
+        .on("mouseover", tipMouseover)
+        .on("mouseout", tipMouseout);
 }
