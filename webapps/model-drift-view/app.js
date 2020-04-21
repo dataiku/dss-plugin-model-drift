@@ -69,7 +69,7 @@ function draw(data) {
             drawFugacity(data['fugacity']);
             draw_KDE_classification(data['kde']);
             drawFeatureImportance(data['feature_importance']);
-            if (data.drift_accuracy > 0.1){
+            if (data.drift_accuracy >= 0.1){
                 d3.select("#feature_importance_div").style('display', 'block');
             } else {
                 d3.select("#feature_importance_div").style('display', 'none');
@@ -80,7 +80,7 @@ function draw(data) {
             d3.select("#kde_container_div").select("h3").remove();
             draw_KDE_regression(data['kde']);
             drawFeatureImportance(data['feature_importance']);
-            if (data.drift_accuracy > 0.1){
+            if (data.drift_accuracy >= 0.1){
                 d3.select("#feature_importance_div").style('display', 'block')
             } else {
                 d3.select("#feature_importance_div").style('display', 'none');
@@ -366,7 +366,7 @@ function draw_KDE_regression(data) {
         .attr("x", width/2 + 90)
         .attr("y", height + 29)
         .attr("font-size", 12)
-        .text("Density probability function of the predicted values");
+        .text("Probability density function");
 }
 
 function getMaxX(data) {

@@ -112,7 +112,7 @@
         },
         {
             "name": "columns_to_remove",
-            "label": "Remove those columns from drift analysis",
+            "label": "Columns to ignore",
             "type": "COLUMNS",
             "columnRole": "original"
         }
