@@ -69,6 +69,7 @@ function draw(data) {
             drawFugacity(data['fugacity']);
             draw_KDE_classification(data['kde']);
             drawFeatureImportance(data['feature_importance']);
+            console.log(data);
             if (data.drift_accuracy >= 0.1){
                 d3.select("#feature_importance_div").style('display', 'block');
             } else {
