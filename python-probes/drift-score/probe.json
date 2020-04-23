@@ -1,0 +1,10 @@
+{
+    "meta" : {
+        "label": "Most recent drift score",
+        "description": "",
+        "icon": "icon-puzzle-piece"
+    },
+    "handlesDataset": true,
+    "handlesManagedFolder": false,
+    "params": []
+}
