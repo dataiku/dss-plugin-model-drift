@@ -106,9 +106,9 @@ class SurrogateModel:
         self.prediction_type = prediction_type
         #TODO should we define some params of RF to avoid long computation ?
         if prediction_type == 'CLASSIFICATION':
-            self.clf = RandomForestClassifier()
+            self.clf = RandomForestClassifier(random_state=1407)
         else:
-            self.clf = RandomForestRegressor()
+            self.clf = RandomForestRegressor(random_state=1407)
         self.check()
 
     def check(self):
