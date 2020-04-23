@@ -85,7 +85,6 @@ class DriftAnalyzer:
         logger.info("Fitting the drift model...")
         self.drift_clf.fit(drift_train_X, drift_train_Y)
 
-
     def prepare_data_when_having_model(self, new_df, original_df):
         logger.info('Prepare data with model')
 
@@ -127,7 +126,7 @@ class DriftAnalyzer:
 
         logger.info("Computing drift metrics ...")
         drift_accuracy = self.get_drift_score()
-        feature_importance_metrics = self._get_feature_importance_metrics()
+        feature_importance_metrics, riskiest_features = self._get_feature_importance_metrics()
 
         if self.prediction_type == 'REGRESSION':
             kde_dict = self.get_regression_prediction_kde()
@@ -143,7 +142,8 @@ class DriftAnalyzer:
                 'drift_accuracy': drift_accuracy,
                 'kde': kde_dict,
                 'fugacity': fugacity_metrics,
-                'label_list': label_list}
+                'label_list': label_list,
+                'riskiest_features': riskiest_features}
 
     def get_classification_prediction_metrics(self):
 
@@ -292,7 +292,6 @@ class DriftAnalyzer:
 
         original_feat_imp_threshold = ratio_threshold * max(original_feature_importance['importance'])
         drift_feat_imp_threshold = ratio_threshold * max(drift_feature_importance['importance'])
-        print(original_feat_imp_threshold, drift_feat_imp_threshold)
         top_original_features = original_feature_importance[original_feature_importance['importance'] > original_feat_imp_threshold].index
         top_drift_features = drift_feature_importance[drift_feature_importance['importance'] > drift_feat_imp_threshold].index
 
@@ -321,7 +320,9 @@ class DriftAnalyzer:
                  'drift_model': drift_feat_rank if drift_feat_rank else 0.01,
                  'feature': feature
             })
-        return feature_importance_metrics
+
+        riskiest_feature = self.get_riskiest_features(drift_feature_importance=drift_feature_importance_df, original_feature_importance=original_feature_importance_df)
+        return feature_importance_metrics, riskiest_feature
     
     def get_drift_score(self, output_raw_score=False):
 
