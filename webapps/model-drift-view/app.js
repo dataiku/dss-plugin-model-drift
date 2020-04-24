@@ -64,32 +64,35 @@ function markRunning(running) {
 }
 
 function draw(data) {
+    document.getElementById("riskiest_features_explanation").innerHTML = '';
     switch(data.type){
         case "CLASSIFICATION":
             drawFugacity(data['fugacity']);
             draw_KDE_classification(data['kde']);
-            drawFeatureImportance(data['feature_importance']);
-            console.log(data);
-            if (data.drift_accuracy >= 0.1){
-                d3.select("#feature_importance_div").style('display', 'block');
-            } else {
-                d3.select("#feature_importance_div").style('display', 'none');
-            }
             break;
         case "REGRESSION":
             d3.select("#fugacity_div").selectAll("div").remove();
             d3.select("#kde_container_div").select("h3").remove();
             draw_KDE_regression(data['kde']);
-            drawFeatureImportance(data['feature_importance']);
-            if (data.drift_accuracy >= 0.1){
-                d3.select("#feature_importance_div").style('display', 'block')
-            } else {
-                d3.select("#feature_importance_div").style('display', 'none');
-            }
             break;
         default:
             console.log("Value error for the type of learning task:")
             console.log(data.type)
+    }
+    drawFeatureImportance(data['feature_importance']);
+    var i;
+    var text = "We recommend you to check the features: <br>"
+    for (i = 0; i < data.riskiest_features.length; i++) {
+        text += data.riskiest_features[i];
+        if (i < (data.riskiest_features.length - 1)){
+            text += ", "
+        }
+    }
+    document.getElementById("riskiest_features_explanation").innerHTML = text;
+    if (data.drift_accuracy >= 0.1){
+        d3.select("#feature_importance_div").style('display', 'block')
+    } else {
+        d3.select("#feature_importance_div").style('display', 'none');
     }
 }
 
