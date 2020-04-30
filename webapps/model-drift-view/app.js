@@ -80,17 +80,19 @@ function draw(data) {
             console.log(data.type)
     }
     drawFeatureImportance(data['feature_importance']);
+    recommendation_text = "";
     if (data.riskiest_features.length>0){
         var i;
-        var text = "We recommend you to check the features: <br>"
+        var recommendation_text = "We recommend you to check the features: <br>"
         for (i = 0; i < data.riskiest_features.length; i++) {
-            text += data.riskiest_features[i];
+            recommendation_text += data.riskiest_features[i];
             if (i < (data.riskiest_features.length - 1)){
-                text += ", "
+                recommendation_text += ", "
             }
         }
     }
-    document.getElementById("riskiest_features_explanation").innerHTML = text;
+    document.getElementById("riskiest_features_explanation").innerHTML = recommendation_text;
+
     if (data.drift_accuracy >= 0.1){
         d3.select("#feature_importance_div").style('display', 'block')
     } else {
