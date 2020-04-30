@@ -1,12 +1,10 @@
 import dataiku
 import pandas as pd
 import json
-import sys
 from dataiku.customrecipe import *
 from dku_tools import set_column_description, get_train_date
 from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.model_accessor import ModelAccessor
-from dku_data_drift.dataframe_helpers import schema_are_compatible
 from dku_data_drift.dataset_helpers import get_partitioning_columns
 
 from model_metadata import get_model_handler
@@ -27,7 +25,7 @@ project = client.get_project(dataiku.default_project_key())
 logger.info("Retrieve the input dataset")
 input_names = get_input_names_for_role('input')
 new_ds = dataiku.Dataset(input_names[0])
-new_df = new_ds.get_dataframe(limit=MAX_NUM_ROW)
+new_df = new_ds.get_dataframe(bool_as_str=True, limit=MAX_NUM_ROW)
 
 partition_cols_new_df = get_partitioning_columns(new_ds)
 if partition_cols_new_df:
