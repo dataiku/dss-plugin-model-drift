@@ -80,12 +80,14 @@ function draw(data) {
             console.log(data.type)
     }
     drawFeatureImportance(data['feature_importance']);
-    var i;
-    var text = "We recommend you to check the features: <br>"
-    for (i = 0; i < data.riskiest_features.length; i++) {
-        text += data.riskiest_features[i];
-        if (i < (data.riskiest_features.length - 1)){
-            text += ", "
+    if (data.riskiest_features.length>0){
+        var i;
+        var text = "We recommend you to check the features: <br>"
+        for (i = 0; i < data.riskiest_features.length; i++) {
+            text += data.riskiest_features[i];
+            if (i < (data.riskiest_features.length - 1)){
+                text += ", "
+            }
         }
     }
     document.getElementById("riskiest_features_explanation").innerHTML = text;
