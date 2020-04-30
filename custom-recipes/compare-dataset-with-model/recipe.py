@@ -38,14 +38,19 @@ logger.info("Retrieve the input model")
 input_names = get_input_names_for_role('model')
 model = dataiku.Model(input_names[0])
 model_id = model.get_id()
-saved_model = project.get_saved_model(model_id)
-available_model_version = saved_model.list_versions()
-logger.info("The input model has the following version ids: {}".format(available_model_version))
 
 # Retrieve the version id of the model (dynamic dropdown selection)
-version_id = get_recipe_config().get('version_id')
-if version_id is None:
-    raise ValueError('Please choose a model version.')
+use_active_version = get_recipe_config().get('use_active_version')
+if use_active_version:
+    for version in model.list_versions():
+        active_version = version.get('active') is True
+        if active_version:
+            version_id = version.get('versionId')
+            break
+else:
+    version_id = get_recipe_config().get('version_id')
+    if version_id is None:
+        raise ValueError('Please choose a model version.')
 
 metric_list = get_recipe_config().get('metric_list')
 if len(metric_list) == 0 or metric_list is None:
@@ -78,8 +83,10 @@ new_df = pd.DataFrame({'timestamp': [timestamp],
                        'version_id': [version_id],
                        'train_date': [model_train_date]})
 
-column_description_dict = {}
+#fix the column order
+new_df = new_df[['timestamp', 'model_id', 'version_id', 'train_date']]
 
+column_description_dict = {}
 if 'drift_score' in metric_list:
     drift_score = drifter.get_drift_score()
     new_df['drift_score'] = [drift_score]
@@ -108,20 +115,25 @@ if 'fugacity' in metric_list:
             column_description_dict['fugacity'] = proper_bin_description
 
 if 'feature_importance' in metric_list:
+    drift_feature_importance = drifter.get_drift_feature_importance()
+    original_feature_importance = drifter.get_original_feature_importance()
+    riskiest_feature = drifter.get_riskiest_features(drift_feature_importance, original_feature_importance)
+    new_df['riskiest_feature'] = json.dumps(riskiest_feature)
+    column_description_dict['riskiest_feature'] = 'Features that we recommend you to check in details'
+
     if output_format == 'multiple_columns':
-        drift_feature_importance = drifter.get_drift_feature_importance()
         feat_dict = {}
         for feat, feat_info in drift_feature_importance[:10].iterrows():
             feat_dict[feat] = round(feat_info.get('importance'), 2)
         new_df['drift_feature_importance'] = [json.dumps(feat_dict)]
-        column_description_dict['drift_feature_importance'] = 'List of features that have been drifted the most, with their % of importance'
+        column_description_dict['drift_feature_importance'] = 'Features that have been drifted the most, with their % of importance'
 
         original_feature_importance = drifter.get_original_feature_importance()
         feat_dict = {}
         for feat, feat_info in original_feature_importance[:10].iterrows():
             feat_dict[feat] = round(feat_info.get('importance'), 2)
         new_df['original_feature_importance'] = [json.dumps(feat_dict)]
-        column_description_dict['original_feature_importance'] = 'List of the most important features in the deployed model, with their % of importance'
+        column_description_dict['original_feature_importance'] = 'Most important features in the deployed model, with their % of importance'
     else:
 
         drift_feature_importance = drifter.get_drift_feature_importance()
@@ -130,7 +142,6 @@ if 'feature_importance' in metric_list:
             tmp_dict_drift[feat] = round(feat_info.get('importance'), 2)
 
 
-        original_feature_importance = drifter.get_original_feature_importance()
         tmp_dict_original = {}
         for feat, feat_info in original_feature_importance[:10].iterrows():
             tmp_dict_original[feat] = round(feat_info.get('importance'), 2)
@@ -141,6 +152,7 @@ if 'feature_importance' in metric_list:
 
         new_df['feature_importance'] = json.dumps(feat_dict)
         column_description_dict['feature_importance'] = 'drift_feature_importance: List of features that have been drifted the most, with their % of importance. original_feature_importance: List of the most important features in the deployed model, with their % of importance'
+
 
 output_dataset.write_with_schema(new_df)
 set_column_description(output_dataset, column_description_dict)

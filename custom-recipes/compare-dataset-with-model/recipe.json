@@ -44,10 +44,18 @@
 
     "params": [
         {
+            "name": "use_active_version",
+            "label": "Use the model's active version",
+            "type": "BOOLEAN",
+            "defaultValue": true
+        },
+        {
             "name": "version_id",
             "label": "Model version",
             "type": "SELECT",
-            "getChoicesFromPython": true
+            "getChoicesFromPython": true,
+            "visibilityCondition": "!model.use_active_version"
+
         },
         {
             "name": "metric_list",
