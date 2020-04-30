@@ -70,15 +70,26 @@
                 </div>
 
             <div class="explanation" style="float: right;">
-                The scatter plot shows feature importance for the original model versus feature importance for the (data classifying) drift model.<br><br>
+                The scatter plot shows feature importance for the original model versus feature importance for the
+                (data classifying) drift model.
+                <br><br>
 
-                <b>This graph should be examined alongside with the drift score (<span id="inline-drift-score-2"></span>)</b>. <br>
-                For a highly drifted dataset (drift score ~1), if the features most responsible for data drift are of low importance in the original model (bottom right quadrant), you can expect the behavior of the model to remain the same.<br><br>
-                Features in the top right quadrant of this scatter plot are highly drifted (i.e. they are powerful in distinguishing test data from new observations), but also of high importance for the original model. In this situation, you can expect the performance of the model to degrade as your model does not apply to your new observations.
-                <b>
-                    <div class="explanation" id="riskiest_features_explanation">
-                    </div>
-                </b>
+                <b>This graph should be examined alongside with the drift score (<span id="inline-drift-score-2"></span>)</b>.
+                <br>
+
+                For a highly drifted dataset (drift score ~1), if the features most responsible for data drift are of low importance
+                in the original model (bottom right quadrant), you can expect the behavior of the model to remain the same.
+                <br><br>
+
+                Features in the top right quadrant of this scatter plot are highly drifted (i.e. they are powerful in
+                distinguishing test data from new observations), but also of high importance for the original model.
+                In this situation, you can expect the performance of the model to degrade as your model does not apply
+                to your new observations.<br>
+
+                <p class="explanation" id="riskiest_features_explanation" style="text-indent: -18px;"></p>
+
+                <br><br>
+
             </div>
         </div>
         </div>
