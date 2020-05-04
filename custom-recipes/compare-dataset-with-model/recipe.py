@@ -119,7 +119,7 @@ if 'feature_importance' in metric_list:
     original_feature_importance = drifter.get_original_feature_importance()
     riskiest_feature = drifter.get_riskiest_features(drift_feature_importance, original_feature_importance)
     new_df['riskiest_feature'] = json.dumps(riskiest_feature)
-    column_description_dict['riskiest_feature'] = 'Features that we recommend you to check in details'
+    column_description_dict['riskiest_feature'] = 'If the drift score is low, we recommend you to check those features'
 
     if output_format == 'multiple_columns':
         feat_dict = {}
