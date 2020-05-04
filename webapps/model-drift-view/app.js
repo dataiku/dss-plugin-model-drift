@@ -36,11 +36,14 @@ function runAnalysis($this) {
     dataiku.webappBackend.get('get-drift-metrics', {'model_id': modelId, 'version_id': versionId, 'test_set': $("#dataset-selector").val()})
         .then(
             function(data) {
+                // first box
                 $('#drift-score').text(data['drift_accuracy']);
                 $('#inline-drift-score').text(data['drift_accuracy']);
                 $('#inline-drift-score-2').text(data['drift_accuracy']);
                 changeInputColor('#drift-score', data['drift_accuracy']);
                 $('#error_message').html('');
+
+                //other boxes
                 draw(data);
                 $('.result-state').show();
                 markRunning(false);
