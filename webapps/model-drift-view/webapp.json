@@ -1,6 +1,6 @@
 {
     "meta": {
-        "label": "Feature drift analysis",
+        "label": "Data drift analysis",
         "description": "Get insights on the applicability of a model by exploring how a dataset of new data differs from the  evaluation (test) dataset.",
         "icon": "icon-anchor"
     },

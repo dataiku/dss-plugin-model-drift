@@ -128,12 +128,12 @@ class DriftAnalyzer:
         feature_importance_metrics, riskiest_features = self._get_feature_importance_metrics()
 
         if self.prediction_type == 'REGRESSION':
-            kde_dict = self.get_regression_prediction_kde()
+            kde_dict = self._get_regression_prediction_kde()
             fugacity_metrics = {}
             label_list = []
         elif self.prediction_type == 'CLASSIFICATION':
             logger.info("Compute classification drift metrics for classification")
-            kde_dict, fugacity_metrics, label_list = self.get_classification_prediction_metrics()
+            kde_dict, fugacity_metrics, label_list = self._get_classification_prediction_metrics()
         else:
             raise ValueError('Prediction type not defined.')
 
@@ -145,7 +145,7 @@ class DriftAnalyzer:
                 'label_list': label_list,
                 'riskiest_features': riskiest_features}
 
-    def get_classification_prediction_metrics(self):
+    def _get_classification_prediction_metrics(self):
 
         if not self.has_predictions:
             raise ValueError('DriftAnalyzer needs a target.')
@@ -176,7 +176,7 @@ class DriftAnalyzer:
             label_list = fugacity['class'].unique()
             return None, fugacity, label_list
 
-    def get_regression_prediction_kde(self):
+    def _get_regression_prediction_kde(self):
 
         if not self.has_predictions:
             raise ValueError('No target was defined at fit phase.')
@@ -207,7 +207,7 @@ class DriftAnalyzer:
         TODO refactor
 
         """
-        kde_dict = self.get_regression_prediction_kde()
+        kde_dict = self._get_regression_prediction_kde()
         new = kde_dict.get('Prediction').get('new')
         old = kde_dict.get('Prediction').get('original')
         old_arr = np.array(old).T
@@ -241,13 +241,13 @@ class DriftAnalyzer:
         fugacity_relative_change = fuga_relative_change_df.iloc[0].to_dict()
 
         e = '-inf'
-        lst = []
+        decile_interval_description = []
         for edge in kb.bin_edges_[0][1:-1]:
-            lst.append('from {0} to {1}'.format(e, round(edge, 2)))
+            decile_interval_description.append('from {0} to {1}'.format(e, round(edge, 2)))
             e = round(edge, 3)
 
-        lst.append('from {0} to +inf'.format(round(kb.bin_edges_[0][-2], 2)))
-        return fugacity, fugacity_relative_change, lst
+        decile_interval_description.append('from {0} to +inf'.format(round(kb.bin_edges_[0][-2], 2)))
+        return fugacity, fugacity_relative_change, decile_interval_description
 
 
     def _prepare_data_for_drift_model(self, new_df, original_df):
