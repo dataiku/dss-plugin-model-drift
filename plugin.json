@@ -4,7 +4,7 @@
     "meta": {
         "label": "Model drift monitoring",
         "description": "Get insights on the degree of drift between two (training) datasets.",
-        "author": "Dataiku (Léo Dreyfus-Schmidt & Du Phan)",
+        "author": "Dataiku (Léo Dreyfus-Schmidt, Du Phan & Thibault Desfontaines)",
         "icon": "icon-anchor",
     	"supportLevel": "TIER2_SUPPORT",
         "licenseInfo": "Apache Software License",
