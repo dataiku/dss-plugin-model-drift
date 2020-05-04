@@ -29,14 +29,13 @@ output_names = get_output_names_for_role('main_output')
 output_datasets = [dataiku.Dataset(name) for name in output_names]
 output_dataset = output_datasets[0]
 
-target_variable = None
 learning_task = None
 output_format = 'single_column'
 metric_list = get_recipe_config().get('metric_list_without_prediction')
 
 if len(metric_list) == 0 or metric_list is None:
     raise ValueError('Please choose at least one metric.')
-logger.info('Chosen metrics: ', metric_list)
+logger.info('Chosen metrics: {}'.format(metric_list))
 
 # Handle partitioning
 partition_cols_new_df = get_partitioning_columns(new_ds)
@@ -60,7 +59,7 @@ if len(columns_to_remove) != 0:
 
 # Analyse the drift
 drifter = DriftAnalyzer(learning_task)
-drifter.fit(new_df=new_df, original_df=original_df, target=target_variable)
+drifter.fit(new_df=new_df, original_df=original_df)
 
 # Write the drift score and metrics
 timestamp = datetime.datetime.now()

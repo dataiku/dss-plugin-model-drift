@@ -35,12 +35,6 @@ class DriftAnalyzer:
         self.has_predictions = False
         self.target = None
         self.features_in_drift_model = None
-        #self.check()
-
-    def check(self):
-        #if self._model_accessor.get_prediction_type() == 'CLUSTERING':
-        #    raise ValueError('Clustering model is not supported.')
-        return None
 
     def get_prediction_type(self):
         return self.prediction_type
@@ -278,6 +272,8 @@ class DriftAnalyzer:
         else:
             selected_features = original_df.columns
 
+
+        logger.info('Features used for drift models: {}'.format(selected_features))
         missing_features = set(selected_features) - set(new_df.columns)
         if len(missing_features) > 0:
             raise ValueError('Missing column(s) in the new dataframe: {}'.format(', '.join(list(missing_features))))
@@ -353,7 +349,7 @@ class DriftAnalyzer:
     def get_drift_score(self, output_raw_score=False):
 
         """
-        Drift score is the accuracy of drift model
+        Drift score is the accuracy of drift model (with an exponential transform by default)
 
         :param output_raw_score:
         :return:

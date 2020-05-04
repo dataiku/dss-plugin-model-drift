@@ -45,7 +45,7 @@
             "type": "MULTISELECT",
             "selectChoices": [
                 { "value": "drift_score", "label": "Drift score"},
-                { "value": "feature_importance", "label": "Feature importance"}
+                { "value": "feature_importance", "label": "Most drifted features"}
             ],
             "defaultValue": ["drift_score"]
         },

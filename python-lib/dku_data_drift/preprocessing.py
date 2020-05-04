@@ -54,7 +54,7 @@ class Preprocessor:
                 self.df[feature] = self.df[feature].astype('double')
 
     def _get_numerical_features(self):
-        return self.df.select_dtypes(include=['number']).columns.tolist()
+        return self.df.select_dtypes(include=['number', 'M8[ns]']).columns.tolist()
 
     def _get_categorical_features(self):
         return self.df.select_dtypes(include=['object', 'category']).columns.tolist()
