@@ -79,7 +79,7 @@ if 'feature_importance' in metric_list:
     for feat, feat_info in feature_importance[:10].iterrows():
         feat_dict[feat] = round(feat_info.get('importance'), 2)
     new_df['most_drifted_features'] = [json.dumps(feat_dict)]
-    column_description_dict['most_drifted_features'] = 'List of features that have been drifted the most, with their % of importance'
+    column_description_dict['most_drifted_features'] = 'When the drift score is high, this is the list of features that have been drifted the most, with their % of importance'
 
 
 output_dataset.write_with_schema(new_df)

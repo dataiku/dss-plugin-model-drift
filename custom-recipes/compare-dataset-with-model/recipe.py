@@ -124,7 +124,7 @@ if 'feature_importance' in metric_list:
     for feat, feat_info in drift_feature_importance[:20].iterrows():
         feat_dict[feat] = round(feat_info.get('importance'), 2)
     new_df['most_drifted_features'] = [json.dumps(feat_dict)]
-    column_description_dict['most_drifted_features'] = 'Features that have been drifted the most, with their % of importance (max 20 features).'
+    column_description_dict['most_drifted_features'] = 'When the drift score is high, this is the list of features that have been drifted the most, with their % of importance (max 20 features).'
 
     original_feature_importance = drifter.get_original_feature_importance()
     feat_dict = {}
