@@ -67,9 +67,40 @@ function markRunning(running) {
 }
 
 function draw(data) {
-    drawFugacity(data['fugacity']);
-    drawKDE(data['kde']);
+    document.getElementById("riskiest_features_explanation").innerHTML = '';
+    switch(data.type){
+        case "CLASSIFICATION":
+            drawFugacity(data['fugacity']);
+            draw_KDE_classification(data['kde']);
+            break;
+        case "REGRESSION":
+            d3.select("#fugacity_div").selectAll("div").remove();
+            d3.select("#kde_container_div").select("h3").remove();
+            draw_KDE_regression(data['kde']);
+            break;
+        default:
+            console.log("Value error for the type of learning task:")
+            console.log(data.type)
+    }
     drawFeatureImportance(data['feature_importance']);
+    recommendation_text = "";
+    if (data.riskiest_features.length>0){
+        var i;
+        var recommendation_text = "We recommend you to check the features: <br>"
+        for (i = 0; i < data.riskiest_features.length; i++) {
+            recommendation_text += data.riskiest_features[i];
+            if (i < (data.riskiest_features.length - 1)){
+                recommendation_text += ", "
+            }
+        }
+    }
+    document.getElementById("riskiest_features_explanation").innerHTML = recommendation_text;
+
+    if (data.drift_accuracy >= 0.1){
+        d3.select("#feature_importance_div").style('display', 'block')
+    } else {
+        d3.select("#feature_importance_div").style('display', 'none');
+    }
 }
 
 function drawFugacity(data) {
@@ -100,10 +131,16 @@ function json2table(json, classes) {
     return `<div><table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
-function drawKDE(data) {
+function draw_KDE_classification(data) {
+
     d3.select("#kde-chart").select("svg").remove();
     d3.select("#label-list").selectAll("option").remove();
-    
+
+    document.getElementById('kde_explanation').innerHTML =
+        'This chart represents the probability density estimation for a given prediction class when scoring '+
+        'both the test dataset and your input dataset. <br><br>Visually different probability density estimations '+
+        'indicate high data drift.'
+
     let margin = {top: 30, right: 30, bottom: 30, left: 50};
     let width = 550 - margin.left - margin.right;
     let height = 450 - margin.top - margin.bottom;
@@ -244,6 +281,105 @@ function drawKDE(data) {
     });
 }
 
+function draw_KDE_regression(data) {
+
+    d3.select("#kde-chart").select("svg").remove();
+    d3.select("#label-list").selectAll("option").remove();
+
+    document.getElementById('kde_explanation').innerHTML =
+        'This chart represents the density estimation of the prediction values when scoring both the test dataset and '+
+        'your input dataset. <br><br>Visually different density estimations indicate high data drift.';
+
+    let margin = {top: 30, right: 30, bottom: 30, left: 50};
+    let width = 550 - margin.left - margin.right;
+    let height = 450 - margin.top - margin.bottom;
+
+    // append the svg object to the body of the page
+    let svg = d3.select("#kde-chart")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    // List of groups (here I have one group per column)
+    let labels = Object.keys(data);
+
+    var minSupport = data.Prediction.min_support;
+    var maxSupport = data.Prediction.max_support;
+
+    // add the x Axis
+    let x = d3.scaleLinear()
+        .domain([minSupport, maxSupport])
+        .range([0, width]);
+    svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x));
+
+    let density1 = data[labels[0]]['original'];
+    let density2 = data[labels[0]]['new'];
+
+    density1_array = density1.map(x=>x[1])
+    density2_array = density2.map(x=>x[1])
+
+    // first and last value of array must be zero otherwise the color fill will mess up
+    density1[0] = [minSupport,0];
+    density2[0] = [minSupport,0];
+    density1[density1.length - 1] = [maxSupport, 0];
+    density2[density2.length - 1] = [maxSupport, 0];
+
+    // add the y Axis
+    let maxY = Math.max.apply(Math, density1_array.concat(density2_array));
+    let y = d3.scaleLinear()
+        .range([height, 0])
+        .domain([0, maxY*1.1]);
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Plot the area
+    let curve1 = svg.append("path")
+        .attr("class", "mypath")
+        .datum(density1)
+        .attr("fill", "#2b67ff")
+        .attr("fill-opacity", ".4")
+        .attr("stroke", "#2b67ff")
+        .attr("stroke-width", 2)
+        .attr("stroke-linejoin", "round")
+        .attr("d", d3.line()
+            .curve(d3.curveBasis)
+            .x(d => x(d[0]))
+            .y(d => y(d[1]))
+        );
+
+    // Plot the area
+    let curve2 = svg.append("path")
+        .attr("class", "mypath")
+        .datum(density2)
+        .attr("fill", "#ff832b")
+        .attr("fill-opacity", ".4")
+        .attr("stroke", "#ff832b")
+        .attr("stroke-width", 2)
+        .attr("stroke-linejoin", "round")
+        .attr("d", d3.line()
+            .curve(d3.curveBasis)
+            .x(d => x(d[0]))
+            .y(d => y(d[1]))
+        );
+
+    // Handmade legend
+    svg.append("circle").attr("cx",280).attr("cy",10).attr("r", 6).style("fill", "#2b67ff")
+    svg.append("circle").attr("cx",280).attr("cy",40).attr("r", 6).style("fill", "#ff832b")
+    svg.append("text").attr("x", 300).attr("y", 10).text("Test dataset").style("font-size", "15px").attr("alignment-baseline","middle")
+    svg.append("text").attr("x", 300).attr("y", 40).text("Input dataset").style("font-size", "15px").attr("alignment-baseline","middle")
+    // Add X axis label:
+    svg.append("text")
+        .attr("text-anchor", "end")
+        .attr("x", width/2 + 90)
+        .attr("y", height + 29)
+        .attr("font-size", 12)
+        .text("Probability density function");
+}
+
 function getMaxX(data) {
   return data.reduce((max, p) => p['drift_model'] > max ? p['drift_model'] : max, data[0]['drift_model']);
 }
@@ -253,6 +389,7 @@ function getMaxY(data) {
 }
 
 function drawFeatureImportance(data) {
+
     d3.select("#feat-imp-plot").select("svg").remove();
 
     var values = Object.keys(data).map(function(key){
@@ -342,6 +479,6 @@ function drawFeatureImportance(data) {
         .attr("r", 6)
         .style("fill", "#2b67ff")
         .style("opacity", 1)
-    .on("mouseover", tipMouseover)
-     .on("mouseout", tipMouseout);
+        .on("mouseover", tipMouseover)
+        .on("mouseout", tipMouseout);
 }

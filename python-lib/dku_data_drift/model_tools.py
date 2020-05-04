@@ -67,47 +67,36 @@ def mroc_auc_score(y_true, y_predictions, sample_weight=None):
         for j in classes
         if i != j)
 
+def format_proba_density(data, sample_weight=None, min_support=0, max_support=100):
+    """
+    Estimate the density distribution of the target 1-dimensional data array.
+    The support arguments (inf and sup) should be:
+     - 0 and 1 for classification
+     - min(data) and max(data) for regression
 
-def format_proba_density(data, sample_weight=None, proba=True, cast_to_int=True):
+    Output format of the density
+    >>> list(zip([1, 2, 3], [0.3, 0.3, 0.4]))
+
+    :param data: Target data of the model
+    :param sample_weight:
+    :param min_support: Inferior boundary of the support for density estimation
+    :param max_support: Superior boundary of the support for density estimation
+    :return:
+    """
     data = np.array(data)
     if len(data) == 0:
         return []
+    # Heuristic for the bandwidth determination
     h = 1.06 * np.std(data) * math.pow(len(data), -.2)
     if h <= 0:
         h = 0.06
     if len(np.unique(data)) == 1:
         sample_weight = None
-
-    if proba:
-        min_interval = 0
-        max_interval = 100
-    else:
-        min_interval = np.min(data)
-        max_interval = np.max(data)
-    if cast_to_int:
-        X_plot = np.linspace(min_interval, max_interval, 500, dtype=int)[:, np.newaxis]
-    else:
-        X_plot = np.linspace(min_interval, max_interval, 500)[:, np.newaxis]
+    # Definition of the support of the estimate
+    X_plot = np.linspace(min_support, max_support, 500, dtype=float)[:, np.newaxis]
     kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
     Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
     return list(zip(X_plot.ravel(), Y_plot))
-
-
-""" 
-def format_proba_density(data, sample_weight=None):
-    data = np.array(data)
-    if len(data) == 0:
-        return []
-    h = 1.06 * np.std(data) * math.pow(len(data), -.2)
-    if h <= 0:
-        h = 0.06
-    if len(np.unique(data)) == 1:
-        sample_weight = None
-    X_plot = np.linspace(0, 100, 500, dtype=int)[:, np.newaxis]
-    kde = KernelDensity(kernel='gaussian', bandwidth=h).fit(data.reshape(-1, 1), sample_weight=sample_weight)
-    Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
-    return list(zip(X_plot.ravel(), Y_plot))
-"""
 
 class SurrogateModel:
 

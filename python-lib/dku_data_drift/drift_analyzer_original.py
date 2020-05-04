@@ -160,9 +160,8 @@ class DriftAnalyzer:
         return dfx_top.rename_axis('rank').reset_index().set_index('feature')
     
     def _get_feature_importance_metrics(self, drift_features, drift_clf):
-
         original_feature_importance_df = self._model_accessor.get_feature_importance()
-        drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf, cumulative_percentage_threshold=95)
+        drift_feature_importance_df = self._get_drift_feature_importance(drift_features, drift_clf)
         topn_drift_feature = drift_feature_importance_df.to_dict()['importance']
         topn_original_feature = original_feature_importance_df.to_dict()['importance']
         feature_importance_metrics = []

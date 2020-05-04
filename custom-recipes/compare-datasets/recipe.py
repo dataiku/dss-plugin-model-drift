@@ -29,7 +29,6 @@ output_names = get_output_names_for_role('main_output')
 output_datasets = [dataiku.Dataset(name) for name in output_names]
 output_dataset = output_datasets[0]
 
-
 target_variable = None
 learning_task = None
 output_format = 'single_column'
@@ -48,6 +47,16 @@ if partition_cols_new_df:
     new_df = new_df.drop(partition_cols_new_df, axis=1)
 if len(new_df.columns)==0 or len(original_df.columns)==0:
     raise ValueError('Without the partition column, at least one of the datasets is empty.')
+
+# Handle columns to remove
+columns_to_remove = get_recipe_config().get('columns_to_remove')
+if len(columns_to_remove) != 0:
+    to_remove_in_original = set(original_df.columns).intersection(set(columns_to_remove))
+    if to_remove_in_original:
+        original_df = original_df.drop(list(to_remove_in_original), axis=1)
+    to_remove_in_new = set(new_df.columns).intersection(set(columns_to_remove))
+    if to_remove_in_new:
+        new_df = new_df.drop(list(to_remove_in_new), axis=1)
 
 # Analyse the drift
 drifter = DriftAnalyzer(learning_task)
