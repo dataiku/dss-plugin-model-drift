@@ -2,7 +2,7 @@
     "meta": {
         "label": "Compute feature drift of a deployed model",
         "description": "Measure a potential drift between the original training data of a model and a new dataset. Support regression and classification",
-        "icon": "icon-puzzle-piece",
+        "icon": "icon-anchor",
         "displayOrderRank": 1
     },
 
