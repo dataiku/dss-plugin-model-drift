@@ -63,26 +63,11 @@
             "type": "MULTISELECT",
             "selectChoices": [
                 { "value": "drift_score", "label": "Drift score"},
-                { "value": "fugacity", "label": "Fugacity", "Description":  "Prediction density"},
+                { "value": "fugacity", "label": "Fugacity"},
+                { "value": "riskiest_features", "label": "Riskiest features"},
                 { "value": "feature_importance", "label": "Feature importance"}
             ],
             "defaultValue": ["drift_score"]
-        },
-        {
-            "name": "output_format",
-            "label": "Output format",
-            "type": "SELECT",
-            "selectChoices": [
-                {
-                    "value": "single_column",
-                    "label": "Single JSON column per metric"
-                },
-                {
-                    "value": "multiple_columns",
-                    "label": "Multiple columns per metric"
-                }
-            ],
-            "defaultValue": "single_column"
         }
     ],
 

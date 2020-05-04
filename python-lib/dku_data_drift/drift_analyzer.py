@@ -195,7 +195,6 @@ class DriftAnalyzer:
         TODO refactor
 
         """
-
         kde_dict = self.get_regression_prediction_kde()
         new = kde_dict.get('Prediction').get('new')
         old = kde_dict.get('Prediction').get('original')
@@ -210,10 +209,24 @@ class DriftAnalyzer:
         full_density_new = df.new_density.sum()
         fuga_old = 100 * df.groupby('old_bin').old_density.sum() / full_density_old
         fuga_new = 100 * df.groupby('new_bin').new_density.sum() / full_density_new
-        fugacity_diff = np.around(fuga_new - fuga_old, decimals=5)
-        fuga_diff_df = pd.DataFrame(fugacity_diff.to_dict(), index=[0])
-        fuga_diff_columns = ['fugacity_diff_bin_{}'.format(col) for col in fuga_diff_df.columns]
-        fuga_diff_df.columns = fuga_diff_columns
+
+        fuga_old_df = pd.DataFrame(fuga_old).reset_index()
+        fuga_old_df['old_bin'] = fuga_old_df['old_bin'].map(lambda x: 'fugacity_decile_{}'.format(x))
+        old_fugacity_values = fuga_old_df.set_index('old_bin').to_dict().get('old_density')
+
+        fuga_new_df = pd.DataFrame(fuga_new).reset_index()
+        fuga_new_df['new_bin'] = fuga_new_df['new_bin'].map(lambda x: 'fugacity_decile_{}'.format(x))
+        new_fugacity_values = fuga_new_df.set_index('new_bin').to_dict().get('new_density')
+
+        fugacity = {'original_dataset': old_fugacity_values, 'new_dataset': new_fugacity_values}
+
+        fugacity_relative_change_values = np.around(100*(fuga_new - fuga_old)/fuga_old, decimals=5)
+        fuga_relative_change_df = pd.DataFrame(fugacity_relative_change_values.to_dict(), index=[0])
+        fuga_diff_columns = ['fugacity_relative_change_decile_{}'.format(col) for col in fuga_relative_change_df.columns]
+        fuga_relative_change_df.columns = fuga_diff_columns
+
+        fugacity_relative_change = fuga_relative_change_df.iloc[0].to_dict()
+
         e = '-inf'
         lst = []
         for edge in kb.bin_edges_[0][1:-1]:
@@ -221,7 +234,7 @@ class DriftAnalyzer:
             e = round(edge, 3)
 
         lst.append('from {0} to +inf'.format(round(kb.bin_edges_[0][-2], 2)))
-        return fuga_diff_df, lst
+        return fugacity, fugacity_relative_change, lst
 
 
     def _prepare_data_for_drift_model(self, new_df, original_df):
@@ -402,10 +415,15 @@ class DriftAnalyzer:
         else:
             original_fugacity = (100 * original_prediction_df[self.target].value_counts(normalize=True)).round(decimals=2).rename_axis('class').reset_index(name='percentage')
             new_fugacity = (100 * new_prediciton_df[self.target].value_counts(normalize=True)).round(decimals=2).rename_axis('class').reset_index(name='percentage')
+            fugacity_relative_change = {}
             fugacity = {}
 
             for label in original_fugacity['class'].unique():
-                fugacity_diff = new_fugacity[new_fugacity['class'] == label]['percentage'].values[0] - original_fugacity[original_fugacity['class'] == label]['percentage'].values[0]
-                new_label = 'fugacity_difference_of_class_{}'.format(label)
-                fugacity[new_label] = round(fugacity_diff, 3)
-            return fugacity
+                new_value = new_fugacity[new_fugacity['class'] == label]['percentage'].values[0]
+                original_value = original_fugacity[original_fugacity['class'] == label]['percentage'].values[0]
+                fugacity_diff = 100 * float(new_value - original_value)/float(original_value)
+                new_label_relative = 'fugacity_relative_change_of_class_{}'.format(label)
+                fugacity_relative_change[new_label_relative] = round(fugacity_diff, 3)
+                new_label = 'fugacity_class_{}'.format(label)
+                fugacity[new_label] = {'original_dataset': original_value, 'new_dataset': new_value}
+            return fugacity, fugacity_relative_change
