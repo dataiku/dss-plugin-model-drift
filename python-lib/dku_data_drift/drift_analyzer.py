@@ -229,10 +229,11 @@ class DriftAnalyzer:
         fuga_new_df = pd.DataFrame(fuga_new).reset_index()
         fuga_new_df['new_bin'] = fuga_new_df['new_bin'].map(lambda x: 'fugacity_decile_{}'.format(x))
         new_fugacity_values = fuga_new_df.set_index('new_bin').to_dict().get('new_density')
+        fugacity = {}
+        for k, v in old_fugacity_values.items():
+            fugacity[k] = {'original_dataset': v, 'new_dataset': new_fugacity_values.get(k)}
 
-        fugacity = {'original_dataset': old_fugacity_values, 'new_dataset': new_fugacity_values}
-
-        fugacity_relative_change_values = np.around(100*(fuga_new - fuga_old)/fuga_old, decimals=5)
+        fugacity_relative_change_values = np.around(100*(fuga_new - fuga_old)/fuga_old, decimals=3)
         fuga_relative_change_df = pd.DataFrame(fugacity_relative_change_values.to_dict(), index=[0])
         fuga_diff_columns = ['fugacity_relative_change_decile_{}'.format(col) for col in fuga_relative_change_df.columns]
         fuga_relative_change_df.columns = fuga_diff_columns
