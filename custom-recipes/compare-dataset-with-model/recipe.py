@@ -1,18 +1,16 @@
-import dataiku
 import pandas as pd
 import json
-from dataiku.customrecipe import *
+import datetime
+import logging
+import dataiku
+from dataiku.customrecipe import get_input_names_for_role, get_output_names_for_role, get_recipe_config
 from dku_tools import set_column_description, get_train_date
 from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.model_accessor import ModelAccessor
 from dku_data_drift.dataset_helpers import get_partitioning_columns
-
+from dku_data_drift.model_drift_constants import ModelDriftConstants
 from model_metadata import get_model_handler
 
-import datetime
-import logging
-
-MAX_NUM_ROW = 100000 # heuristic choice
 
 # init logger
 logger = logging.getLogger(__name__)
@@ -25,7 +23,7 @@ project = client.get_project(dataiku.default_project_key())
 logger.info("Retrieve the input dataset")
 input_names = get_input_names_for_role('input')
 new_ds = dataiku.Dataset(input_names[0])
-new_df = new_ds.get_dataframe(bool_as_str=True, limit=MAX_NUM_ROW)
+new_df = new_ds.get_dataframe(bool_as_str=True, limit=ModelDriftConstants.MAX_NUM_ROW)
 
 partition_cols_new_df = get_partitioning_columns(new_ds)
 if partition_cols_new_df:
@@ -41,6 +39,7 @@ model_id = model.get_id()
 
 # Retrieve the version id of the model (dynamic dropdown selection)
 use_active_version = get_recipe_config().get('use_active_version')
+active_version = None
 if use_active_version:
     for version in model.list_versions():
         active_version = version.get('active') is True
@@ -68,7 +67,6 @@ model_accessor = ModelAccessor(model_handler)
 
 # Analyze the drift
 drifter = DriftAnalyzer(prediction_type=None)
-target = model_accessor.get_target_variable()
 drifter.fit(new_df, model_accessor=model_accessor)
 
 # Write the drift score and metrics
@@ -76,65 +74,62 @@ drifter.fit(new_df, model_accessor=model_accessor)
 model_train_date = get_train_date(model_id, version_id)
 
 timestamp = datetime.datetime.now()
-new_df = pd.DataFrame({'timestamp': [timestamp],
-                       'model_id': [model_id],
-                       'version_id': [version_id],
-                       'train_date': [model_train_date]})
+new_df = pd.DataFrame({ModelDriftConstants.TIMESTAMP: [timestamp],
+                       ModelDriftConstants.MODEL_ID: [model_id],
+                       ModelDriftConstants.VERSION_ID: [version_id],
+                       ModelDriftConstants.TRAIN_DATE: [model_train_date]})
 
 #fix the column order
-new_df = new_df[['timestamp', 'model_id', 'version_id', 'train_date']]
+new_df = new_df[[ModelDriftConstants.TIMESTAMP, ModelDriftConstants.MODEL_ID, ModelDriftConstants.VERSION_ID, ModelDriftConstants.TRAIN_DATE]]
 
 column_description_dict = {}
-if 'drift_score' in metric_list:
+if ModelDriftConstants.DRIFT_SCORE in metric_list:
     drift_score = drifter.get_drift_score()
-    new_df['drift_score'] = [drift_score]
-    column_description_dict['drift_score'] = 'The drift score (between 0 and 1) is low (udner 0.1) if the new dataset and the original dataset are indistinguishable.'
+    new_df[ModelDriftConstants.DRIFT_SCORE] = [drift_score]
+    column_description_dict[ModelDriftConstants.DRIFT_SCORE] = ModelDriftConstants.DRIFT_SCORE_DEFINITION
 
-if 'fugacity' in metric_list:
+if ModelDriftConstants.FUGACITY in metric_list:
     if drifter.get_prediction_type() == 'CLASSIFICATION':
         fugacity, fugacity_relative_change = drifter.get_classification_fugacity()
-        new_df['fugacity'] = json.dumps(fugacity)
-        new_df['fugacity_relative_change'] = json.dumps(fugacity_relative_change)
-        column_description_dict['fugacity'] = 'Proportion of samples predicted (in %) in each class when scoring on both the original test and the new input dataset.'
-        column_description_dict['fugacity_relative_change'] = 'Relative change (in %) in each class with respect to the original fugacity value.\n\nFormula: 100*(new_fugacity - original_fugacity)/original_fugacity'
+        new_df[ModelDriftConstants.FUGACITY] = json.dumps(fugacity)
+        new_df[ModelDriftConstants.FUGACITY_RELATIVE_CHANGE] = json.dumps(fugacity_relative_change)
+        column_description_dict[ModelDriftConstants.FUGACITY] = ModelDriftConstants.FUGACITY_CLASSIF_DEFINITION
+        column_description_dict[ModelDriftConstants.FUGACITY_RELATIVE_CHANGE] = ModelDriftConstants.FUGACITY_RELATIVE_CHANGE_CLASSIF_DEFINITION
     else: # regression
         fugacity, fugacity_relative_change, bin_description = drifter.get_regression_fugacity()
-        new_df['fugacity'] = json.dumps(fugacity)
-        new_df['fugacity_relative_change'] = json.dumps(fugacity_relative_change)
+        new_df[ModelDriftConstants.FUGACITY] = json.dumps(fugacity)
+        new_df[ModelDriftConstants.FUGACITY_RELATIVE_CHANGE] = json.dumps(fugacity_relative_change)
         proper_bin_description = '\n'.join(['Decile {0}: {1}'.format(bin_index, bin_desc) for bin_index, bin_desc in enumerate(bin_description)])
-        fugacity_def = 'Proportion of samples predicted (in %) in each decile when scoring on both the original test and the new input dataset.\n\n'
-        fugacity_relative_change_def = 'Relative change (in %) in each decile with respect to the original fugacity value.\n\nFormula: 100*(new_fugacity - original_fugacity)/original_fugacity\n\n'
-        column_description_dict['fugacity'] = fugacity_def + proper_bin_description
-        column_description_dict['fugacity_relative_change'] = fugacity_relative_change_def + proper_bin_description
+        column_description_dict[ModelDriftConstants.FUGACITY] = ModelDriftConstants.FUGACITY_REGRESSION_DEFINITION + proper_bin_description
+        column_description_dict[ModelDriftConstants.FUGACITY_RELATIVE_CHANGE] = ModelDriftConstants.FUGACITY_RELATIVE_CHANGE_REGRESSION_DEFINITION + proper_bin_description
 
 
-
-if 'feature_importance' in metric_list:
+if ModelDriftConstants.FEATURE_IMPORTANCE in metric_list:
 
     drift_feature_importance = drifter.get_drift_feature_importance()
     original_feature_importance = drifter.get_original_feature_importance()
 
-    if 'riskiest_features' in metric_list:
+    if ModelDriftConstants.RISKIEST_FEATURES in metric_list:
         riskiest_feature = drifter.get_riskiest_features(drift_feature_importance, original_feature_importance)
-        new_df['riskiest_features'] = json.dumps(riskiest_feature)
-        column_description_dict['riskiest_features'] = 'If the drift score is medium/high (above 0.1), we recommend you to check those features.\nA feature is considered risky if it is both in the top 40% of the most drifted features as well as the top 40% most important features in the original model.'
+        new_df[ModelDriftConstants.RISKIEST_FEATURES] = json.dumps(riskiest_feature)
+        column_description_dict[ModelDriftConstants.RISKIEST_FEATURES] = ModelDriftConstants.RISKIEST_FEATURES_DEFINITION
     feat_dict = {}
-    for feat, feat_info in drift_feature_importance[:20].iterrows():
+    for feat, feat_info in drift_feature_importance[:ModelDriftConstants.NUMBER_OF_DRIFTED_FEATURES].iterrows():
         feat_dict[feat] = round(feat_info.get('importance'), 2)
-    new_df['most_drifted_features'] = [json.dumps(feat_dict)]
-    column_description_dict['most_drifted_features'] = 'When the drift score is medium/high (above 0.1), this is the list of features that have been drifted the most, with their % of importance (max 20 features).'
+    new_df[ModelDriftConstants.MOST_DRIFTED_FEATURES] = [json.dumps(feat_dict)]
+    column_description_dict[ModelDriftConstants.MOST_DRIFTED_FEATURES] = ModelDriftConstants.MOST_DRIFTED_FEATURES_DEFINITION
 
     original_feature_importance = drifter.get_original_feature_importance()
     feat_dict = {}
-    for feat, feat_info in original_feature_importance[:20].iterrows():
+    for feat, feat_info in original_feature_importance[:ModelDriftConstants.NUMBER_OF_DRIFTED_FEATURES].iterrows():
         feat_dict[feat] = round(feat_info.get('importance'), 2)
-    new_df['most_important_features_in_deployed_model'] = [json.dumps(feat_dict)]
-    column_description_dict['most_important_features_in_deployed_model'] = 'Most important features in the deployed model, with their % of importance (max 20 features).'
+    new_df[ModelDriftConstants.MOST_IMPORTANT_FEATURES] = [json.dumps(feat_dict)]
+    column_description_dict[ModelDriftConstants.MOST_IMPORTANT_FEATURES] = ModelDriftConstants.MOST_DRIFTED_FEATURES_DEFINITION
 
-elif 'riskiest_features' in metric_list:
+elif ModelDriftConstants.RISKIEST_FEATURES in metric_list:
     riskiest_feature = drifter.get_riskiest_features()
-    new_df['riskiest_features'] = json.dumps(riskiest_feature)
-    column_description_dict['riskiest_features'] = 'If the drift score is medium/high (above 0.1), we recommend you to check those features.\nA feature is considered risky if it is both in the top 40% of the most drifted features as well as the top 40% most important features in the original model.'
+    new_df[ModelDriftConstants.RISKIEST_FEATURES] = json.dumps(riskiest_feature)
+    column_description_dict[ModelDriftConstants.MOST_DRIFTED_FEATURES] = ModelDriftConstants.MOST_DRIFTED_FEATURES_DEFINITION
 
 output_dataset.write_with_schema(new_df)
 set_column_description(output_dataset, column_description_dict)

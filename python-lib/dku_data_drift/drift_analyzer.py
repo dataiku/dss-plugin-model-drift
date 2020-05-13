@@ -8,21 +8,14 @@ from sklearn.preprocessing import KBinsDiscretizer
 from dku_data_drift.preprocessing import Preprocessor
 from dku_data_drift.dataframe_helpers import not_enough_data
 from dku_data_drift.model_tools import format_proba_density
+from dku_data_drift.model_drift_constants import ModelDriftConstants
 
 logger = logging.getLogger(__name__)
 
-ORIGIN_COLUMN = '__dku_row_origin__'  # name for the column that will contain the information from where the row is from (original test dataset or new dataframe)
-FROM_ORIGINAL = 'original'
-FROM_NEW = 'new'
-MIN_NUM_ROWS = 500 # heuristic choice
-MAX_NUM_ROW = 100000 # heuristic choice
-CUMULATIVE_PERCENTAGE_THRESHOLD = 90
-PREDICTION_TEST_SIZE = 100000
 
+class DriftAnalyzer(object):
 
-class DriftAnalyzer:
-
-    def __init__(self, prediction_type=None, min_num_row=MIN_NUM_ROWS):
+    def __init__(self, prediction_type=None, min_num_row=ModelDriftConstants.MIN_NUM_ROWS):
         self.prediction_type = prediction_type
         self.min_num_row = min_num_row
         self.drift_clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
@@ -67,12 +60,12 @@ class DriftAnalyzer:
         else:
             raise NotImplementedError('You need to precise either a model accessor or an original df.')
 
-        preprocessor = Preprocessor(df, target=ORIGIN_COLUMN)
+        preprocessor = Preprocessor(df, target=ModelDriftConstants.ORIGIN_COLUMN)
         train, test = preprocessor.get_processed_train_test()
-        drift_train_X = train.drop(ORIGIN_COLUMN, axis=1)
-        drift_train_Y = np.array(train[ORIGIN_COLUMN])
-        self._drift_test_X = test.drop(ORIGIN_COLUMN, axis=1)  # we will use them later when compute metrics
-        self._drift_test_Y = np.array(test[ORIGIN_COLUMN])
+        drift_train_X = train.drop(ModelDriftConstants.ORIGIN_COLUMN, axis=1)
+        drift_train_Y = np.array(train[ModelDriftConstants.ORIGIN_COLUMN])
+        self._drift_test_X = test.drop(ModelDriftConstants.ORIGIN_COLUMN, axis=1)  # we will use them later when compute metrics
+        self._drift_test_Y = np.array(test[ModelDriftConstants.ORIGIN_COLUMN])
         self.features_in_drift_model = drift_train_X.columns
 
         logger.info("Fitting the drift model...")
@@ -121,11 +114,11 @@ class DriftAnalyzer:
         drift_accuracy = self.get_drift_score()
         feature_importance_metrics, riskiest_features = self._get_feature_importance_metrics()
 
-        if self.prediction_type == 'REGRESSION':
+        if self.prediction_type == ModelDriftConstants.REGRRSSION_TYPE:
             kde_dict = self._get_regression_prediction_kde()
             fugacity_metrics = {}
             label_list = []
-        elif self.prediction_type == 'CLASSIFICATION':
+        elif self.prediction_type == ModelDriftConstants.CLASSIFICATION_TYPE:
             logger.info("Compute classification drift metrics for classification")
             kde_dict, fugacity_metrics, label_list = self._get_classification_prediction_metrics()
         else:
@@ -144,23 +137,23 @@ class DriftAnalyzer:
         if not self.has_predictions:
             raise ValueError('DriftAnalyzer needs a target.')
 
-        if self.prediction_type != 'CLASSIFICATION':
+        if self.prediction_type != ModelDriftConstants.CLASSIFICATION_TYPE:
             raise ValueError('Can not use this function with a {} model.'.format(self.prediction_type))
 
         if self._model_accessor is not None:
-            prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
+            prediction_dict = self.get_predictions_from_original_model(limit=ModelDriftConstants.PREDICTION_TEST_SIZE)
             predictions_by_class = {}
-            for label in prediction_dict.get(FROM_ORIGINAL).columns:
+            for label in prediction_dict.get(ModelDriftConstants.FROM_ORIGINAL).columns:
                 if 'proba_' in label:
-                    original_proba = np.around(prediction_dict.get(FROM_ORIGINAL)[label].values, 2).tolist()
-                    new_proba = np.around(prediction_dict.get(FROM_NEW)[label].values, 2).tolist()
-                    predictions_by_class[label] = {FROM_ORIGINAL: original_proba, FROM_NEW: new_proba}
+                    original_proba = np.around(prediction_dict.get(ModelDriftConstants.FROM_ORIGINAL)[label].values, 2).tolist()
+                    new_proba = np.around(prediction_dict.get(ModelDriftConstants.FROM_NEW)[label].values, 2).tolist()
+                    predictions_by_class[label] = {ModelDriftConstants.FROM_ORIGINAL: original_proba, ModelDriftConstants.FROM_NEW: new_proba}
             kde_dict = {}
             for label in predictions_by_class.keys():
-                kde_original = format_proba_density(predictions_by_class.get(label).get(FROM_ORIGINAL))
-                kde_new = format_proba_density(predictions_by_class.get(label).get(FROM_NEW))
+                kde_original = format_proba_density(predictions_by_class.get(label).get(ModelDriftConstants.FROM_ORIGINAL))
+                kde_new = format_proba_density(predictions_by_class.get(label).get(ModelDriftConstants.FROM_NEW))
                 cleaned_label = label.replace('proba_', 'Class ')
-                kde_dict[cleaned_label] = {FROM_ORIGINAL: kde_original, FROM_NEW: kde_new}
+                kde_dict[cleaned_label] = {ModelDriftConstants.FROM_ORIGINAL: kde_original, ModelDriftConstants.FROM_NEW: kde_new}
             fugacity = self.get_classification_fugacity(reformat=True)
             label_list = [label for label in fugacity[0].keys() if label != 'source']
 
@@ -175,12 +168,12 @@ class DriftAnalyzer:
         if not self.has_predictions:
             raise ValueError('No target was defined at fit phase.')
 
-        if self.prediction_type != 'REGRESSION':
+        if self.prediction_type != ModelDriftConstants.REGRRSSION_TYPE:
             raise ValueError('Can not use this function with a {} model.'.format(self.prediction_type))
 
-        prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
-        original_serie = prediction_dict.get(FROM_ORIGINAL).values
-        new_serie = prediction_dict.get(FROM_NEW).values
+        prediction_dict = self.get_predictions_from_original_model(limit=ModelDriftConstants.PREDICTION_TEST_SIZE)
+        original_serie = prediction_dict.get(ModelDriftConstants.FROM_ORIGINAL).values
+        new_serie = prediction_dict.get(ModelDriftConstants.FROM_NEW).values
         min_support = float(min(min(original_serie), min(new_serie)))
         max_support = float(max(max(original_serie), max(new_serie)))
         logger.info("Computed histogram support: [{},{}]".format(min_support, max_support))
@@ -188,8 +181,8 @@ class DriftAnalyzer:
         kde_new = format_proba_density(new_serie, min_support=min_support, max_support=max_support)
         kde_dict= {
             'Prediction': {
-                FROM_ORIGINAL: kde_original,
-                FROM_NEW: kde_new,
+                ModelDriftConstants.FROM_ORIGINAL: kde_original,
+                ModelDriftConstants.FROM_NEW: kde_new,
                 "min_support": min_support,
                 "max_support": max_support
             }
@@ -258,17 +251,17 @@ class DriftAnalyzer:
         if not_enough_data(original_df, min_len=self.min_num_row):
             raise ValueError('The original dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(original_df),self.min_num_row))
 
-        original_df[ORIGIN_COLUMN] = FROM_ORIGINAL
-        new_df[ORIGIN_COLUMN] = FROM_NEW
+        original_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_ORIGINAL
+        new_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_NEW
 
         logger.info("Rebalancing data:")
-        number_of_rows = min(original_df.shape[0], new_df.shape[0], MAX_NUM_ROW)
+        number_of_rows = min(original_df.shape[0], new_df.shape[0], ModelDriftConstants.MAX_NUM_ROW)
         logger.info(" - original dataset had %s rows, new dataset has %s. Selecting the first %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
 
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
 
         if self._model_accessor is not None:
-            selected_features = [ORIGIN_COLUMN] + self._model_accessor.get_selected_features()
+            selected_features = [ModelDriftConstants.ORIGIN_COLUMN] + self._model_accessor.get_selected_features()
         else:
             selected_features = original_df.columns
 
@@ -280,7 +273,7 @@ class DriftAnalyzer:
 
         return df.loc[:, selected_features]
 
-    def get_drift_feature_importance(self, cumulative_percentage_threshold=95):
+    def get_drift_feature_importance(self, cumulative_percentage_threshold=ModelDriftConstants.FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD):
         feature_importance = []
         for feature_name, feat_importance in zip(self.features_in_drift_model, self.drift_clf.feature_importances_):
             feature_importance.append({
@@ -293,13 +286,13 @@ class DriftAnalyzer:
         dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
         return dfx_top.rename_axis('rank').reset_index().set_index('feature')
 
-    def get_original_feature_importance(self, cumulative_percentage_threshold=95):
+    def get_original_feature_importance(self, cumulative_percentage_threshold=ModelDriftConstants.FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD):
         if self._model_accessor is not None:
             return self._model_accessor.get_feature_importance(cumulative_percentage_threshold)
         else:
             raise ValueError('DriftAnalyzer needs a ModelAccessor as input.')
 
-    def get_riskiest_features(self, drift_feature_importance=None, original_feature_importance=None, ratio_threshold=0.6):
+    def get_riskiest_features(self, drift_feature_importance=None, original_feature_importance=None, ratio_threshold=ModelDriftConstants.RISKIEST_FEATURES_RATIO_THRESHOLD):
         """
         Return a list of features that users should check (ie. those that are on the top right quadrant of the feat imp plot)
 
@@ -363,7 +356,7 @@ class DriftAnalyzer:
             exponential_function = lambda x: round(np.exp(1 - 1 / (np.power(x, 2.5))), 2)
             return exponential_function(drift_accuracy) # make the score looks more "logic" from the user point of view
 
-    def get_predictions_from_original_model(self, limit=10000):
+    def get_predictions_from_original_model(self, limit=ModelDriftConstants.MAX_NUM_ROW):
         """
         Predictions on the test set of original and new data
 
@@ -378,18 +371,18 @@ class DriftAnalyzer:
             new_predicton_df = self._model_accessor.predict(self._new_df[:limit])
             new_predicton_df = new_predicton_df.rename(columns={'prediction':self.target})
 
-            if self._model_accessor.get_prediction_type() == 'CLASSIFICATION':
+            if self._model_accessor.get_prediction_type() == ModelDriftConstants.CLASSIFICATION_TYPE:
                 proba_columns = [col for col in original_prediction_df.columns if 'proba_' in col]
                 # move to % scale, it plays nicer with d3 ...
                 original_prediction_df.loc[:, proba_columns] = np.around(original_prediction_df.loc[:, proba_columns] * 100)
                 new_predicton_df.loc[:, proba_columns] = np.around(new_predicton_df.loc[:, proba_columns] * 100)
 
-            return {FROM_ORIGINAL: original_prediction_df, FROM_NEW: new_predicton_df}
+            return {ModelDriftConstants.FROM_ORIGINAL: original_prediction_df, ModelDriftConstants.FROM_NEW: new_predicton_df}
 
         else: # no proba columns
             original_prediction_df = self._original_df.loc[:, [self.target]]
             new_prediciton_df = self._new_df.loc[:, [self.target]]
-            return {FROM_ORIGINAL: original_prediction_df, FROM_NEW: new_prediciton_df}
+            return {ModelDriftConstants.FROM_ORIGINAL: original_prediction_df, ModelDriftConstants.FROM_NEW: new_prediciton_df}
 
 
     def get_classification_fugacity(self, reformat=False):
@@ -399,15 +392,15 @@ class DriftAnalyzer:
         :param prediction_dict:
         :return:
         """
-        if self.prediction_type != 'CLASSIFICATION':
-            raise ValueError('This function is for prediction of type CLASSIFICATION.'.format(self.prediction_type))
+        if self.prediction_type != ModelDriftConstants.CLASSIFICATION_TYPE:
+            raise ValueError('This function is for prediction of type {0}.'.format(self.prediction_type))
 
         if not self.has_predictions:
             raise ValueError('No target was defined in the fit phase.')
 
-        prediction_dict = self.get_predictions_from_original_model(limit=PREDICTION_TEST_SIZE)
-        original_prediction_df = prediction_dict.get(FROM_ORIGINAL)
-        new_prediciton_df = prediction_dict.get(FROM_NEW)
+        prediction_dict = self.get_predictions_from_original_model(limit=ModelDriftConstants.PREDICTION_TEST_SIZE)
+        original_prediction_df = prediction_dict.get(ModelDriftConstants.FROM_ORIGINAL)
+        new_prediciton_df = prediction_dict.get(ModelDriftConstants.FROM_NEW)
 
         if reformat: # for the model view
             original_fugacity = (100 * original_prediction_df[self.target].value_counts(normalize=True)).round(decimals=2).to_dict()

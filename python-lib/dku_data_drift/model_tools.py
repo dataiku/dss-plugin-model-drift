@@ -1,6 +1,4 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 import logging
 import numpy as np
 import math
@@ -9,6 +7,7 @@ from sklearn.neighbors import KernelDensity
 from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from dku_data_drift.preprocessing import Preprocessor
+from dku_data_drift.model_drift_constants import ModelDriftConstants
 
 logger = logging.getLogger(__name__)
 
@@ -98,21 +97,21 @@ def format_proba_density(data, sample_weight=None, min_support=0, max_support=10
     Y_plot = [v if not np.isnan(v) else 0 for v in np.exp(kde.score_samples(X_plot))]
     return list(zip(X_plot.ravel(), Y_plot))
 
-class SurrogateModel:
+class SurrogateModel(object):
 
     def __init__(self, prediction_type):
         self.feature_names = None
         self.target = None
         self.prediction_type = prediction_type
         #TODO should we define some params of RF to avoid long computation ?
-        if prediction_type == 'CLASSIFICATION':
+        if prediction_type == ModelDriftConstants.CLASSIFICATION_TYPE:
             self.clf = RandomForestClassifier(random_state=1407)
         else:
             self.clf = RandomForestRegressor(random_state=1407)
         self.check()
 
     def check(self):
-        if self.prediction_type not in ['CLASSIFICATION', 'REGRESSION']:
+        if self.prediction_type not in [ModelDriftConstants.CLASSIFICATION_TYPE, ModelDriftConstants.REGRRSSION_TYPE]:
             raise ValueError('Prediction type must either be CLASSIFICATION or REGRESSION.')
 
     def fit(self, df, target):
@@ -123,7 +122,7 @@ class SurrogateModel:
         self.clf.fit(train_X, train_Y)
         self.feature_names = train_X.columns
 
-    def get_feature_importance(self, cumulative_percentage_threshold=95):
+    def get_feature_importance(self, cumulative_percentage_threshold=ModelDriftConstants.FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD):
         feature_importance = []
         feature_importances = self.clf.feature_importances_
         for feature_name, feat_importance in zip(self.feature_names, feature_importances):

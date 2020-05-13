@@ -1,21 +1,17 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
-
+import logging
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 from sklearn.tree import DecisionTreeClassifier
 from dku_data_drift.model_tools import SurrogateModel
-import logging
+from dku_data_drift.model_drift_constants import ModelDriftConstants
 
 logger = logging.getLogger(__name__)
 
 ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
-MAX_NUM_ROW = 100000
-SURROGATE_TARGET = "_dku_predicted_label_"
 
 
-class ModelAccessor:
-
+class ModelAccessor(object):
     def __init__(self, model_handler=None):
         self.model_handler = model_handler
 
@@ -23,12 +19,12 @@ class ModelAccessor:
         """
         Wrap the prediction type accessor of the model
         """
-        if 'CLASSIFICATION' in self.model_handler.get_prediction_type():
-            return 'CLASSIFICATION'
-        elif 'REGRESSION' in self.model_handler.get_prediction_type():
-            return 'REGRESSION'
+        if ModelDriftConstants.CLASSIFICATION_TYPE in self.model_handler.get_prediction_type():
+            return ModelDriftConstants.CLASSIFICATION_TYPE
+        elif ModelDriftConstants.REGRRSSION_TYPE in self.model_handler.get_prediction_type():
+            return ModelDriftConstants.REGRRSSION_TYPE
         else:
-            return 'CLUSTERING'
+            return ModelDriftConstants.CLUSTERING_TYPE
 
     def check(self):
         """
@@ -43,7 +39,7 @@ class ModelAccessor:
         """
         return self.model_handler.get_target_variable()
 
-    def get_original_test_df(self, limit=MAX_NUM_ROW):
+    def get_original_test_df(self, limit=ModelDriftConstants.MAX_NUM_ROW):
         try:
             return self.model_handler.get_test_df()[0][:limit]
         except Exception as e:
@@ -56,7 +52,7 @@ class ModelAccessor:
     def get_predictor(self):
         return self.model_handler.get_predictor()
 
-    def get_feature_importance(self, cumulative_percentage_threshold=95):
+    def get_feature_importance(self, cumulative_percentage_threshold=ModelDriftConstants.FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD):
         """
         :param cumulative_percentage_threshold:
         :return:
@@ -83,8 +79,8 @@ class ModelAccessor:
             original_test_df = self.get_original_test_df()
             predictions_on_original_test_df = self.get_predictor().predict(original_test_df)
             surrogate_df = original_test_df[self.get_selected_features()]
-            surrogate_df[SURROGATE_TARGET] = predictions_on_original_test_df['prediction']
-            surrogate_model.fit(surrogate_df, SURROGATE_TARGET)
+            surrogate_df[ModelDriftConstants.SURROGATE_TARGET] = predictions_on_original_test_df['prediction']
+            surrogate_model.fit(surrogate_df, ModelDriftConstants.SURROGATE_TARGET)
             return surrogate_model.get_feature_importance()
 
     def get_selected_features(self):

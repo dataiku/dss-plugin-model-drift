@@ -1,11 +1,8 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 import os
 import sys
 import json
 from dataiku.doctor.posttraining.model_information_handler import PredictionModelInformationHandler
-
 
 def get_model_handler(model, version_id=None):
     saved_model_version_id = _get_saved_model_version_id(model, version_id)

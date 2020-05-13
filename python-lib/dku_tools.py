@@ -1,8 +1,6 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 import datetime
 import dataiku
-
 
 def process_timestamp(timestamp):
     """

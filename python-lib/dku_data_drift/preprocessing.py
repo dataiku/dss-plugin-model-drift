@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 EPOCH = datetime(1900, 1, 1)
 
 
-class Preprocessor:
+class Preprocessor(object):
 
     def __init__ (self, df=None, target=None):
         self.df = df
