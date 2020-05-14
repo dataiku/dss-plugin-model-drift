@@ -98,8 +98,14 @@ def format_proba_density(data, sample_weight=None, min_support=0, max_support=10
     return list(zip(X_plot.ravel(), Y_plot))
 
 class SurrogateModel(object):
+    """
+    In case the chosen saved model uses a non-tree based algorithm (and thus does not have feature importance), we fit this surrogate model
+    on top of the prediction of the former one to be able to retrieve the feature importance information.
+
+    """
 
     def __init__(self, prediction_type):
+        self.check()
         self.feature_names = None
         self.target = None
         self.prediction_type = prediction_type
@@ -108,7 +114,6 @@ class SurrogateModel(object):
             self.clf = RandomForestClassifier(random_state=1407)
         else:
             self.clf = RandomForestRegressor(random_state=1407)
-        self.check()
 
     def check(self):
         if self.prediction_type not in [ModelDriftConstants.CLASSIFICATION_TYPE, ModelDriftConstants.REGRRSSION_TYPE]:
