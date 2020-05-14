@@ -1,7 +1,7 @@
 {
     "meta": {
         "label": "Compute drift between two datasets",
-        "description": "Measure a potential difference between two datasets having the same schema.",
+        "description": "Measure data drift between two datasets having the same schema.\",",
         "icon": "icon-anchor",
         "displayOrderRank": 2
     },
@@ -11,7 +11,7 @@
     "inputRoles" : [
         {
             "name": "original",
-            "label": "Reference dataset",
+            "label": "Original dataset",
             "description": "",
             "arity": "UNARY",
             "required": true,
@@ -29,7 +29,7 @@
 
     "outputRoles" : [
         {
-            "name": "main_output",
+            "name": "output_dataset",
             "label": "Metrics dataset",
             "description": "Dataset storing drift metrics",
             "arity": "UNARY",

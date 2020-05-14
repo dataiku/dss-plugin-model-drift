@@ -1,17 +1,14 @@
 {
     "meta": {
         "label": "Compute feature drift of a deployed model",
-        "description": "Measure a potential drift between the original training data of a model and a new dataset. Support regression and classification",
+        "description": "Measure data drift between the original training data of a model and a new dataset.",
         "icon": "icon-anchor",
         "displayOrderRank": 1
     },
 
-    "selectableFromDataset": "input",
-
+    "selectableFromDataset": "new",
     "kind": "PYTHON",
-
     "paramsPythonSetup": "compute_model_id_choice.py",
-    
     "inputRoles" : [
         {
             "name": "model",
@@ -22,7 +19,7 @@
             "acceptsSavedModel": true
         },
         {
-            "name": "input",
+            "name": "new",
             "label": "New dataset",
             "description": "New dataset",
             "arity": "UNARY",
@@ -33,9 +30,9 @@
 
     "outputRoles" : [
         {
-            "name": "main_output",
+            "name": "output_dataset",
             "label": "Metrics dataset",
-            "description": "Dataset storing drift metrics",
+            "description": "Drift metrics will be stored in this dataset",
             "arity": "UNARY",
             "required": true,
             "acceptsDataset": true
