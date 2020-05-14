@@ -54,7 +54,7 @@ class ModelAccessor(object):
 
     def get_feature_importance(self, cumulative_percentage_threshold=ModelDriftConstants.FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD):
         """
-        :param cumulative_percentage_threshold:
+        :param cumulative_percentage_threshold: only return the top n features whose sum of importance reaches this threshold
         :return:
         """
         if self._algorithm_is_tree_based():
@@ -65,14 +65,14 @@ class ModelAccessor(object):
             feature_names = predictor.get_features()
             for feature_name, feat_importance in zip(feature_names, feature_importances):
                 feature_importance.append({
-                    'feature': feature_name,
+                    ModelDriftConstants.FEATURE: feature_name,
                     'importance': 100*feat_importance/sum(feature_importances)
                 })
 
             dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
-            dfx['cumulative_importance'] = dfx['importance'].cumsum()
-            dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
-            return dfx_top.rename_axis('rank').reset_index().set_index('feature')
+            dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] = dfx[ModelDriftConstants.IMPORTANCE].cumsum()
+            dfx_top = dfx.loc[dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] <= cumulative_percentage_threshold]
+            return dfx_top.rename_axis(ModelDriftConstants.RANK).reset_index().set_index(ModelDriftConstants.FEATURE)
         else: # use surrogate model
             logger.info('Fitting surrogate model ...')
             surrogate_model = SurrogateModel(self.get_prediction_type())

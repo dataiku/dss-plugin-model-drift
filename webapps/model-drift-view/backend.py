@@ -9,8 +9,9 @@ from model_metadata import get_model_handler
 logger = logging.getLogger(__name__)
 
 
-def convert(o):
-    if isinstance(o, np.int64): return int(o)  
+def convert_numpy_int64_to_int(o):
+    if isinstance(o, np.int64):
+        return int(o)
     raise TypeError
 
 @app.route('/list-datasets')
@@ -35,7 +36,7 @@ def get_drift_metrics():
 
         drifter = DriftAnalyzer()
         drifter.fit(new_test_df, model_accessor=model_accessor)
-        return json.dumps(drifter.get_drift_metrics_for_webapp(), allow_nan=False, default=convert)
+        return json.dumps(drifter.get_drift_metrics_for_webapp(), allow_nan=False, default=convert_numpy_int64_to_int)
     except:
         logger.error(traceback.format_exc())
         return traceback.format_exc(), 500

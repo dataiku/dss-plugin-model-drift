@@ -40,6 +40,21 @@ class ModelDriftConstants(object):
     FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD = 95
     RISKIEST_FEATURES_RATIO_THRESHOLD = 0.65
 
+
+    FEATURE = 'feature'
+    IMPORTANCE = 'importance'
+    CUMULATIVE_IMPORTANCE = 'cumulative_importance'
+    RANK = 'rank'
+    CLASS = 'class'
+    PERCENTAGE = 'percentage'
+    ORIGINAL_DATASET = 'original_dataset'
+    NEW_DATASET = 'new_dataset'
+    FUGACITY_RELATIVE_CHANGE_CLASSIF_LABEL = 'fugacity_relative_change_of_class_{0}'
+    FUGACITY_RELATIVE_CHANGE_REGRESSION_LABEL = 'fugacity_relative_change_decile_{0}'
+    FUGACITY_CLASSIF_LABEL = 'fugacity_class_{0}'
+
+
+
     @staticmethod
     def get_supported_metrics():
         return ModelDriftConstants.DRIFT_SCORE, ModelDriftConstants.FUGACITY, ModelDriftConstants.FEATURE_IMPORTANCE, ModelDriftConstants.RISKIEST_FEATURES

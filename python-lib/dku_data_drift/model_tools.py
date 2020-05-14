@@ -105,7 +105,7 @@ class SurrogateModel(object):
     """
 
     def __init__(self, prediction_type):
-        self.check()
+        self.check(prediction_type)
         self.feature_names = None
         self.target = None
         self.prediction_type = prediction_type
@@ -115,8 +115,8 @@ class SurrogateModel(object):
         else:
             self.clf = RandomForestRegressor(random_state=1407)
 
-    def check(self):
-        if self.prediction_type not in [ModelDriftConstants.CLASSIFICATION_TYPE, ModelDriftConstants.REGRRSSION_TYPE]:
+    def check(self, prediction_type):
+        if prediction_type not in [ModelDriftConstants.CLASSIFICATION_TYPE, ModelDriftConstants.REGRRSSION_TYPE]:
             raise ValueError('Prediction type must either be CLASSIFICATION or REGRESSION.')
 
     def fit(self, df, target):
@@ -132,11 +132,11 @@ class SurrogateModel(object):
         feature_importances = self.clf.feature_importances_
         for feature_name, feat_importance in zip(self.feature_names, feature_importances):
             feature_importance.append({
-                'feature': feature_name,
-                'importance': 100 * feat_importance / sum(feature_importances)
+                ModelDriftConstants.FEATURE: feature_name,
+                ModelDriftConstants.IMPORTANCE: 100 * feat_importance / sum(feature_importances)
             })
 
-        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
-        dfx['cumulative_importance'] = dfx['importance'].cumsum()
-        dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
-        return dfx_top.rename_axis('rank').reset_index().set_index('feature')
+        dfx = pd.DataFrame(feature_importance).sort_values(by=ModelDriftConstants.IMPORTANCE, ascending=False).reset_index(drop=True)
+        dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] = dfx[ModelDriftConstants.IMPORTANCE].cumsum()
+        dfx_top = dfx.loc[dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] <= cumulative_percentage_threshold]
+        return dfx_top.rename_axis(ModelDriftConstants.RANK).reset_index().set_index(ModelDriftConstants.FEATURE)

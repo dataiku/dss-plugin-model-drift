@@ -15,11 +15,9 @@ logger = logging.getLogger(__name__)
 
 class DriftAnalyzer(object):
 
-    def __init__(self, prediction_type=None, min_num_row=ModelDriftConstants.MIN_NUM_ROWS):
+    def __init__(self, prediction_type=None):
         self.prediction_type = prediction_type
-        self.min_num_row = min_num_row
         self.drift_clf = RandomForestClassifier(n_estimators=100, random_state=1337, max_depth=13, min_samples_leaf=1)
-
         self._original_df = None
         self._new_df = None
         self._drift_test_X = None
@@ -152,7 +150,7 @@ class DriftAnalyzer(object):
             for label in predictions_by_class.keys():
                 kde_original = format_proba_density(predictions_by_class.get(label).get(ModelDriftConstants.FROM_ORIGINAL))
                 kde_new = format_proba_density(predictions_by_class.get(label).get(ModelDriftConstants.FROM_NEW))
-                cleaned_label = label.replace('proba_', 'Class ')
+                cleaned_label = label.replace('proba_', ModelDriftConstants.CLASS)
                 kde_dict[cleaned_label] = {ModelDriftConstants.FROM_ORIGINAL: kde_original, ModelDriftConstants.FROM_NEW: kde_new}
             fugacity = self.get_classification_fugacity(reformat=True)
             label_list = [label for label in fugacity[0].keys() if label != 'source']
@@ -160,7 +158,7 @@ class DriftAnalyzer(object):
             return kde_dict, fugacity, label_list
         else:
             fugacity = self.get_classification_fugacity()
-            label_list = fugacity['class'].unique()
+            label_list = fugacity[ModelDriftConstants.CLASS].unique()
             return None, fugacity, label_list
 
     def _get_regression_prediction_kde(self):
@@ -218,11 +216,11 @@ class DriftAnalyzer(object):
         new_fugacity_values = fuga_new_df.set_index('new_bin').to_dict().get('new_density')
         fugacity = {}
         for k, v in old_fugacity_values.items():
-            fugacity[k] = {'original_dataset': v, 'new_dataset': new_fugacity_values.get(k)}
+            fugacity[k] = {ModelDriftConstants.ORIGINAL_DATASET: v, ModelDriftConstants.NEW_DATASET: new_fugacity_values.get(k)}
 
         fugacity_relative_change_values = np.around(100*(fuga_new - fuga_old)/fuga_old, decimals=3)
         fuga_relative_change_df = pd.DataFrame(fugacity_relative_change_values.to_dict(), index=[0])
-        fuga_diff_columns = ['fugacity_relative_change_decile_{}'.format(col) for col in fuga_relative_change_df.columns]
+        fuga_diff_columns = [ModelDriftConstants.FUGACITY_RELATIVE_CHANGE_REGRESSION_LABEL.format(col) for col in fuga_relative_change_df.columns]
         fuga_relative_change_df.columns = fuga_diff_columns
 
         fugacity_relative_change = fuga_relative_change_df.iloc[0].to_dict()
@@ -237,7 +235,7 @@ class DriftAnalyzer(object):
         return fugacity, fugacity_relative_change, decile_interval_description
 
 
-    def _prepare_data_for_drift_model(self, new_df, original_df):
+    def _prepare_data_for_drift_model(self, new_df, original_df, min_num_row=ModelDriftConstants.MIN_NUM_ROWS, max_num_row=ModelDriftConstants.MAX_NUM_ROW):
         """
         Sampling function so that original test set and new test set has the same ratio in the drift training set
         For now only do top n sampling, with max n = MAX_NUM_ROW
@@ -245,17 +243,17 @@ class DriftAnalyzer(object):
         :return: a dataframe with data source target (orignal vs new)
         """
 
-        if not_enough_data(new_df, min_len=self.min_num_row):
+        if not_enough_data(new_df, min_len=min_num_row):
             raise ValueError('The new dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(new_df),self.min_num_row))
 
-        if not_enough_data(original_df, min_len=self.min_num_row):
+        if not_enough_data(original_df, min_len=min_num_row):
             raise ValueError('The original dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(original_df),self.min_num_row))
 
         original_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_ORIGINAL
         new_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_NEW
 
         logger.info("Rebalancing data:")
-        number_of_rows = min(original_df.shape[0], new_df.shape[0], ModelDriftConstants.MAX_NUM_ROW)
+        number_of_rows = min(original_df.shape[0], new_df.shape[0], max_num_row)
         logger.info(" - original dataset had %s rows, new dataset has %s. Selecting the first %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
 
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
@@ -277,14 +275,14 @@ class DriftAnalyzer(object):
         feature_importance = []
         for feature_name, feat_importance in zip(self.features_in_drift_model, self.drift_clf.feature_importances_):
             feature_importance.append({
-                'feature': feature_name,
-                'importance': 100 * feat_importance / sum(self.drift_clf.feature_importances_)
+                ModelDriftConstants.FEATURE: feature_name,
+                ModelDriftConstants.IMPORTANCE: 100 * feat_importance / sum(self.drift_clf.feature_importances_)
             })
 
-        dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
-        dfx['cumulative_importance'] = dfx['importance'].cumsum()
-        dfx_top = dfx.loc[dfx['cumulative_importance'] <= cumulative_percentage_threshold]
-        return dfx_top.rename_axis('rank').reset_index().set_index('feature')
+        dfx = pd.DataFrame(feature_importance).sort_values(by=ModelDriftConstants.IMPORTANCE, ascending=False).reset_index(drop=True)
+        dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] = dfx[ModelDriftConstants.IMPORTANCE].cumsum()
+        dfx_top = dfx.loc[dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] <= cumulative_percentage_threshold]
+        return dfx_top.rename_axis(ModelDriftConstants.RANK).reset_index().set_index(ModelDriftConstants.FEATURE)
 
     def get_original_feature_importance(self, cumulative_percentage_threshold=ModelDriftConstants.FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD):
         if self._model_accessor is not None:
@@ -305,10 +303,10 @@ class DriftAnalyzer(object):
         if original_feature_importance is None:
             original_feature_importance = self.get_original_feature_importance()
 
-        original_feat_imp_threshold = ratio_threshold * max(original_feature_importance['importance'])
-        drift_feat_imp_threshold = ratio_threshold * max(drift_feature_importance['importance'])
-        top_original_features = original_feature_importance[original_feature_importance['importance'] > original_feat_imp_threshold].index
-        top_drift_features = drift_feature_importance[drift_feature_importance['importance'] > drift_feat_imp_threshold].index
+        original_feat_imp_threshold = ratio_threshold * max(original_feature_importance[ModelDriftConstants.IMPORTANCE])
+        drift_feat_imp_threshold = ratio_threshold * max(drift_feature_importance[ModelDriftConstants.IMPORTANCE])
+        top_original_features = original_feature_importance[original_feature_importance[ModelDriftConstants.IMPORTANCE] > original_feat_imp_threshold].index
+        top_drift_features = drift_feature_importance[drift_feature_importance[ModelDriftConstants.IMPORTANCE] > drift_feat_imp_threshold].index
 
         return list(set(top_original_features).intersection(top_drift_features))
 
@@ -320,8 +318,8 @@ class DriftAnalyzer(object):
         """
         original_feature_importance_df = self.get_original_feature_importance()
         drift_feature_importance_df = self.get_drift_feature_importance()
-        topn_drift_feature = drift_feature_importance_df.to_dict()['importance']
-        topn_original_feature = original_feature_importance_df.to_dict()['importance']
+        topn_drift_feature = drift_feature_importance_df.to_dict()[ModelDriftConstants.IMPORTANCE]
+        topn_original_feature = original_feature_importance_df.to_dict()[ModelDriftConstants.IMPORTANCE]
         feature_importance_metrics = []
         for feature in set(topn_original_feature.keys()).union(set(topn_drift_feature.keys())):
             drift_feat_rank = topn_drift_feature.get(feature)
@@ -415,17 +413,17 @@ class DriftAnalyzer(object):
                 fugacity.append(temp_fugacity)
             return fugacity
         else:
-            original_fugacity = (100 * original_prediction_df[self.target].value_counts(normalize=True)).round(decimals=2).rename_axis('class').reset_index(name='percentage')
-            new_fugacity = (100 * new_prediciton_df[self.target].value_counts(normalize=True)).round(decimals=2).rename_axis('class').reset_index(name='percentage')
+            original_fugacity = (100 * original_prediction_df[self.target].value_counts(normalize=True)).round(decimals=2).rename_axis(ModelDriftConstants.CLASS).reset_index(name=ModelDriftConstants.PERCENTAGE)
+            new_fugacity = (100 * new_prediciton_df[self.target].value_counts(normalize=True)).round(decimals=2).rename_axis(ModelDriftConstants.CLASS).reset_index(name=ModelDriftConstants.PERCENTAGE)
             fugacity_relative_change = {}
             fugacity = {}
 
-            for label in original_fugacity['class'].unique():
-                new_value = new_fugacity[new_fugacity['class'] == label]['percentage'].values[0]
-                original_value = original_fugacity[original_fugacity['class'] == label]['percentage'].values[0]
+            for label in original_fugacity[ModelDriftConstants.CLASS].unique():
+                new_value = new_fugacity[new_fugacity[ModelDriftConstants.CLASS] == label][ModelDriftConstants.PERCENTAGE].values[0]
+                original_value = original_fugacity[original_fugacity[ModelDriftConstants.CLASS] == label][ModelDriftConstants.PERCENTAGE].values[0]
                 fugacity_diff = 100 * float(new_value - original_value)/float(original_value)
-                new_label_relative = 'fugacity_relative_change_of_class_{}'.format(label)
+                new_label_relative = ModelDriftConstants.FUGACITY_RELATIVE_CHANGE_CLASSIF_LABEL.format(label)
                 fugacity_relative_change[new_label_relative] = round(fugacity_diff, 3)
-                new_label = 'fugacity_class_{}'.format(label)
-                fugacity[new_label] = {'original_dataset': original_value, 'new_dataset': new_value}
+                new_label = ModelDriftConstants.FUGACITY_CLASSIF_LABEL.format(label)
+                fugacity[new_label] = {ModelDriftConstants.ORIGINAL_DATASET: original_value, ModelDriftConstants.NEW_DATASET: new_value}
             return fugacity, fugacity_relative_change
