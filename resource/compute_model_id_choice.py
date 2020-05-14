@@ -2,16 +2,7 @@
 Allow dynamic select of the model id in the model recipe.
 """
 import dataiku
-import datetime
-
-
-def process_timestamp(timestamp):
-    """
-    Convert the timestamp to str date
-    :param timestamp:
-    :return:
-    """
-    return str(datetime.datetime.fromtimestamp(timestamp / 1000))
+from dku_tools import process_timestamp
 
 
 def do(payload, config, plugin_config, inputs):
