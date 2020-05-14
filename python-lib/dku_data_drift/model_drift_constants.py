@@ -54,7 +54,6 @@ class ModelDriftConstants(object):
     FUGACITY_CLASSIF_LABEL = 'fugacity_class_{0}'
 
 
-
     @staticmethod
     def get_supported_metrics():
         return ModelDriftConstants.DRIFT_SCORE, ModelDriftConstants.FUGACITY, ModelDriftConstants.FEATURE_IMPORTANCE, ModelDriftConstants.RISKIEST_FEATURES

@@ -244,10 +244,10 @@ class DriftAnalyzer(object):
         """
 
         if not_enough_data(new_df, min_len=min_num_row):
-            raise ValueError('The new dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(new_df),self.min_num_row))
+            raise ValueError('The new dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(new_df), min_num_row))
 
         if not_enough_data(original_df, min_len=min_num_row):
-            raise ValueError('The original dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(original_df),self.min_num_row))
+            raise ValueError('The original dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(original_df), min_num_row))
 
         original_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_ORIGINAL
         new_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_NEW
@@ -293,6 +293,7 @@ class DriftAnalyzer(object):
     def get_riskiest_features(self, drift_feature_importance=None, original_feature_importance=None, ratio_threshold=ModelDriftConstants.RISKIEST_FEATURES_RATIO_THRESHOLD):
         """
         Return a list of features that users should check (ie. those that are on the top right quadrant of the feat imp plot)
+        If either feature importance is not computed, compute them here
 
         :param drift_feature_importance:
         :param original_feature_importance:

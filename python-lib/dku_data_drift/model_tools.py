@@ -119,6 +119,9 @@ class SurrogateModel(object):
         if prediction_type not in [ModelDriftConstants.CLASSIFICATION_TYPE, ModelDriftConstants.REGRRSSION_TYPE]:
             raise ValueError('Prediction type must either be CLASSIFICATION or REGRESSION.')
 
+    def get_features(self):
+        return self.feature_names
+
     def fit(self, df, target):
         preprocessor = Preprocessor(df, target)
         train, test = preprocessor.get_processed_train_test()
@@ -126,17 +129,3 @@ class SurrogateModel(object):
         train_Y = train[target]
         self.clf.fit(train_X, train_Y)
         self.feature_names = train_X.columns
-
-    def get_feature_importance(self, cumulative_percentage_threshold=ModelDriftConstants.FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD):
-        feature_importance = []
-        feature_importances = self.clf.feature_importances_
-        for feature_name, feat_importance in zip(self.feature_names, feature_importances):
-            feature_importance.append({
-                ModelDriftConstants.FEATURE: feature_name,
-                ModelDriftConstants.IMPORTANCE: 100 * feat_importance / sum(feature_importances)
-            })
-
-        dfx = pd.DataFrame(feature_importance).sort_values(by=ModelDriftConstants.IMPORTANCE, ascending=False).reset_index(drop=True)
-        dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] = dfx[ModelDriftConstants.IMPORTANCE].cumsum()
-        dfx_top = dfx.loc[dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] <= cumulative_percentage_threshold]
-        return dfx_top.rename_axis(ModelDriftConstants.RANK).reset_index().set_index(ModelDriftConstants.FEATURE)

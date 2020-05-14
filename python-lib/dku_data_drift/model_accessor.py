@@ -60,19 +60,9 @@ class ModelAccessor(object):
         if self._algorithm_is_tree_based():
             predictor = self.get_predictor()
             clf = predictor._clf
-            feature_importance = []
-            feature_importances = clf.feature_importances_
             feature_names = predictor.get_features()
-            for feature_name, feat_importance in zip(feature_names, feature_importances):
-                feature_importance.append({
-                    ModelDriftConstants.FEATURE: feature_name,
-                    'importance': 100*feat_importance/sum(feature_importances)
-                })
+            feature_importances = clf.feature_importances_
 
-            dfx = pd.DataFrame(feature_importance).sort_values(by='importance', ascending=False).reset_index(drop=True)
-            dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] = dfx[ModelDriftConstants.IMPORTANCE].cumsum()
-            dfx_top = dfx.loc[dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] <= cumulative_percentage_threshold]
-            return dfx_top.rename_axis(ModelDriftConstants.RANK).reset_index().set_index(ModelDriftConstants.FEATURE)
         else: # use surrogate model
             logger.info('Fitting surrogate model ...')
             surrogate_model = SurrogateModel(self.get_prediction_type())
@@ -81,7 +71,21 @@ class ModelAccessor(object):
             surrogate_df = original_test_df[self.get_selected_features()]
             surrogate_df[ModelDriftConstants.SURROGATE_TARGET] = predictions_on_original_test_df['prediction']
             surrogate_model.fit(surrogate_df, ModelDriftConstants.SURROGATE_TARGET)
-            return surrogate_model.get_feature_importance()
+            feature_names = surrogate_model.get_features()
+            feature_importances = surrogate_model.clf.feature_importances_
+
+        feature_importance = []
+        for feature_name, feat_importance in zip(feature_names, feature_importances):
+            feature_importance.append({
+                ModelDriftConstants.FEATURE: feature_name,
+                ModelDriftConstants.IMPORTANCE: 100 * feat_importance / sum(feature_importances)
+            })
+
+        dfx = pd.DataFrame(feature_importance).sort_values(by=ModelDriftConstants.IMPORTANCE, ascending=False).reset_index(drop=True)
+        dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] = dfx[ModelDriftConstants.IMPORTANCE].cumsum()
+        dfx_top = dfx.loc[dfx[ModelDriftConstants.CUMULATIVE_IMPORTANCE] <= cumulative_percentage_threshold]
+        return dfx_top.rename_axis(ModelDriftConstants.RANK).reset_index().set_index(ModelDriftConstants.FEATURE)
+
 
     def get_selected_features(self):
         selected_features = []
