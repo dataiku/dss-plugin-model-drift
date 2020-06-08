@@ -1,12 +1,11 @@
 import pandas as pd
-import json
 import datetime
 import logging
 from dataiku.customrecipe import get_input_names_for_role, get_output_names_for_role, get_recipe_config
 from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.dataset_helpers import get_partitioning_columns
 from dku_data_drift.model_drift_constants import ModelDriftConstants
-from dku_tools import set_column_description, get_input_output, get_params_without_model
+from dku_tools import set_column_description, get_input_output, get_params_without_model, build_drift_metric_dataframe
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='Model Drift Recipe | %(levelname)s - %(message)s')
@@ -42,22 +41,8 @@ drifter.fit(new_df=new_df, original_df=original_df)
 # Write the drift score and metrics
 timestamp = datetime.datetime.now()
 new_df = pd.DataFrame({ModelDriftConstants.TIMESTAMP: [timestamp]})
+metrics_df, column_description_dict = build_drift_metric_dataframe(drifter, metric_list, new_df, has_model_as_input=False)
 
-column_description_dict = {}
-
-if ModelDriftConstants.DRIFT_SCORE in metric_list:
-    drift_score = drifter.get_drift_score()
-    new_df[ModelDriftConstants.DRIFT_SCORE] = [drift_score]
-    column_description_dict[ModelDriftConstants.DRIFT_SCORE] = ModelDriftConstants.DRIFT_SCORE_DEFINITION
-
-if ModelDriftConstants.FEATURE_IMPORTANCE in metric_list:
-    feature_importance = drifter.get_drift_feature_importance()
-    feat_dict = {}
-    for feat, feat_info in feature_importance[:ModelDriftConstants.NUMBER_OF_DRIFTED_FEATURES].iterrows():
-        feat_dict[feat] = round(feat_info.get(ModelDriftConstants.IMPORTANCE), 2)
-    new_df[ModelDriftConstants.MOST_DRIFTED_FEATURES] = [json.dumps(feat_dict)]
-    column_description_dict[ModelDriftConstants.MOST_DRIFTED_FEATURES] = ModelDriftConstants.MOST_DRIFTED_FEATURES_DEFINITION
-
-output_dataset.write_with_schema(new_df)
+output_dataset.write_with_schema(metrics_df)
 set_column_description(output_dataset, column_description_dict)
 

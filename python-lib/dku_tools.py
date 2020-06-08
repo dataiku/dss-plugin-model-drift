@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import datetime
+import json
 import dataiku
 from dataiku.customrecipe import get_input_names_for_role, get_output_names_for_role
+from dku_data_drift.model_drift_constants import ModelDriftConstants
 
 
 def process_timestamp(timestamp):
@@ -85,3 +87,56 @@ def get_params_without_model(recipe_config):
     # Handle columns to remove
     columns_to_remove = recipe_config.get('columns_to_remove')
     return columns_to_remove, metric_list
+
+
+def build_drift_metric_dataframe(drifter, metric_list, based_df, has_model_as_input):
+
+    new_df = based_df.copy()
+    column_description_dict = {}
+
+    if ModelDriftConstants.DRIFT_SCORE in metric_list:
+        # new_df_with_drift_score, column_description_dict = extract_drift_score(drifter, new_df, column_description_dict)
+        drift_score = drifter.get_drift_score()
+        new_df[ModelDriftConstants.DRIFT_SCORE] = [drift_score]
+        column_description_dict[ModelDriftConstants.DRIFT_SCORE] = ModelDriftConstants.DRIFT_SCORE_DEFINITION
+
+    if ModelDriftConstants.FUGACITY in metric_list:
+        if drifter.get_prediction_type() == ModelDriftConstants.CLASSIFICATION_TYPE:
+            fugacity, fugacity_relative_change = drifter.get_classification_fugacity()
+            new_df[ModelDriftConstants.FUGACITY] = json.dumps(fugacity)
+            new_df[ModelDriftConstants.FUGACITY_RELATIVE_CHANGE] = json.dumps(fugacity_relative_change)
+            column_description_dict[ModelDriftConstants.FUGACITY] = ModelDriftConstants.FUGACITY_CLASSIF_DEFINITION
+            column_description_dict[ModelDriftConstants.FUGACITY_RELATIVE_CHANGE] = ModelDriftConstants.FUGACITY_RELATIVE_CHANGE_CLASSIF_DEFINITION
+        elif drifter.get_prediction_type() == ModelDriftConstants.REGRRSSION_TYPE:
+            fugacity, fugacity_relative_change, bin_description = drifter.get_regression_fugacity()
+            new_df[ModelDriftConstants.FUGACITY] = json.dumps(fugacity)
+            new_df[ModelDriftConstants.FUGACITY_RELATIVE_CHANGE] = json.dumps(fugacity_relative_change)
+            proper_bin_description = '\n'.join(['Decile {0}: {1}'.format(bin_index, bin_desc) for bin_index, bin_desc in enumerate(bin_description)])
+            column_description_dict[ModelDriftConstants.FUGACITY] = ModelDriftConstants.FUGACITY_REGRESSION_DEFINITION + proper_bin_description
+            column_description_dict[ModelDriftConstants.FUGACITY_RELATIVE_CHANGE] = ModelDriftConstants.FUGACITY_RELATIVE_CHANGE_REGRESSION_DEFINITION + proper_bin_description
+        else:
+            raise ValueError('Unsupported prediction type: {0}'.format(drifter.get_prediction_type()))
+
+    if ModelDriftConstants.FEATURE_IMPORTANCE in metric_list:
+
+        drift_feature_importance = drifter.get_drift_feature_importance()
+        feat_dict = {}
+        for feat, feat_info in drift_feature_importance[:ModelDriftConstants.NUMBER_OF_DRIFTED_FEATURES].iterrows():
+            feat_dict[feat] = round(feat_info.get(ModelDriftConstants.IMPORTANCE), 2)
+        new_df[ModelDriftConstants.MOST_DRIFTED_FEATURES] = [json.dumps(feat_dict)]
+        column_description_dict[ModelDriftConstants.MOST_DRIFTED_FEATURES] = ModelDriftConstants.MOST_DRIFTED_FEATURES_DEFINITION
+
+        if has_model_as_input:
+            original_feature_importance = drifter.get_original_feature_importance()
+            feat_dict = {}
+            for feat, feat_info in original_feature_importance[:ModelDriftConstants.NUMBER_OF_DRIFTED_FEATURES].iterrows():
+                feat_dict[feat] = round(feat_info.get(ModelDriftConstants.IMPORTANCE), 2)
+            new_df[ModelDriftConstants.MOST_IMPORTANT_FEATURES] = [json.dumps(feat_dict)]
+            column_description_dict[ModelDriftConstants.MOST_IMPORTANT_FEATURES] = ModelDriftConstants.MOST_DRIFTED_FEATURES_DEFINITION
+
+    if ModelDriftConstants.RISKIEST_FEATURES in metric_list:
+        riskiest_feature = drifter.get_riskiest_features()
+        new_df[ModelDriftConstants.RISKIEST_FEATURES] = json.dumps(riskiest_feature)
+        column_description_dict[ModelDriftConstants.MOST_DRIFTED_FEATURES] = ModelDriftConstants.MOST_DRIFTED_FEATURES_DEFINITION
+
+    return new_df, column_description_dict

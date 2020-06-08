@@ -40,7 +40,6 @@ class ModelDriftConstants(object):
     FEAT_IMP_CUMULATIVE_PERCENTAGE_THRESHOLD = 95
     RISKIEST_FEATURES_RATIO_THRESHOLD = 0.65
 
-
     FEATURE = 'feature'
     IMPORTANCE = 'importance'
     CUMULATIVE_IMPORTANCE = 'cumulative_importance'
