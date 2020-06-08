@@ -129,6 +129,6 @@ def build_drift_metric_dataframe(drifter, metric_list, based_df, has_model_as_in
     if ModelDriftConstants.RISKIEST_FEATURES in metric_list:
         riskiest_feature = drifter.get_riskiest_features()
         new_df[ModelDriftConstants.RISKIEST_FEATURES] = json.dumps(riskiest_feature)
-        column_description_dict[ModelDriftConstants.MOST_DRIFTED_FEATURES] = ModelDriftConstants.MOST_DRIFTED_FEATURES_DEFINITION
+        column_description_dict[ModelDriftConstants.RISKIEST_FEATURES] = ModelDriftConstants.RISKIEST_FEATURES_DEFINITION
 
     return new_df, column_description_dict
