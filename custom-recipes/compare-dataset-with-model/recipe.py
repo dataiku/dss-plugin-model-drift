@@ -2,7 +2,8 @@ import pandas as pd
 import datetime
 import logging
 from dataiku.customrecipe import get_input_names_for_role, get_output_names_for_role, get_recipe_config
-from dku_tools import set_column_description, get_train_date, get_input_output, get_params_with_model, build_drift_metric_dataframe
+from dku_tools import set_column_description, get_input_output, get_params_with_model, build_drift_metric_dataframe
+from model_metadata import get_train_date
 from dku_data_drift.drift_analyzer import DriftAnalyzer
 from dku_data_drift.model_accessor import ModelAccessor
 from dku_data_drift.dataset_helpers import get_partitioning_columns

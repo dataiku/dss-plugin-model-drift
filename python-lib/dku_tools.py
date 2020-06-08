@@ -15,14 +15,6 @@ def process_timestamp(timestamp):
     return str(datetime.datetime.fromtimestamp(timestamp / 1000))
 
 
-def get_train_date(model_version, version_id):
-    m = dataiku.Model(model_version, ignore_flow=True)
-    for v in m.list_versions():
-        if v.get('versionId') == version_id:
-            return process_timestamp((v.get('snippet').get('trainDate')))
-    return None
-
-
 def set_column_description(dataset, column_description_dict):
     dataset_schema = dataset.read_schema()
     for col_info in dataset_schema:
