@@ -25,13 +25,6 @@ class ModelAccessor(object):
             return ModelDriftConstants.REGRRSSION_TYPE
         else:
             return ModelDriftConstants.CLUSTERING_TYPE
-
-    def check(self):
-        """
-        Check missing model_handler
-        """
-        if self.model_handler is None:
-            raise ValueError('model_handler object is not specified')
             
     def get_target_variable(self):
         """
