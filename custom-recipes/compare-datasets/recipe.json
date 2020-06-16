@@ -1,7 +1,7 @@
 {
     "meta": {
         "label": "Compute drift between two datasets",
-        "description": "Measure data drift between two datasets having the same schema.\",",
+        "description": "Measure data drift between two datasets having the same schema.",
         "icon": "icon-anchor",
         "displayOrderRank": 2
     },
