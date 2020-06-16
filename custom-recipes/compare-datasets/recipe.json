@@ -1,0 +1,61 @@
+{
+    "meta": {
+        "label": "Compute drift between two datasets",
+        "description": "Measure data drift between two datasets having the same schema.\",",
+        "icon": "icon-anchor",
+        "displayOrderRank": 2
+    },
+
+    "selectableFromDataset": "original",
+    "kind": "PYTHON",
+    "inputRoles" : [
+        {
+            "name": "original",
+            "label": "Original dataset",
+            "description": "",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        },
+        {
+            "name": "new",
+            "label": "New dataset",
+            "description": "",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "outputRoles" : [
+        {
+            "name": "output_dataset",
+            "label": "Metrics dataset",
+            "description": "Dataset storing drift metrics",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "params": [
+        {
+            "name": "metric_list_without_prediction",
+            "label": "Metrics",
+            "type": "MULTISELECT",
+            "selectChoices": [
+                { "value": "drift_score", "label": "Drift score"},
+                { "value": "feature_importance", "label": "Most drifted features"}
+            ],
+            "defaultValue": ["drift_score"]
+        },
+        {
+            "name": "columns_to_remove",
+            "label": "Columns to ignore",
+            "type": "COLUMNS",
+            "columnRole": "original"
+        }
+    ],
+    "resourceKeys": []
+
+}

@@ -1,2 +1,48 @@
 # Model drift monitoring
-This plugin adds a model view to analyze data drift. See the documentation on [our website](https://www.dataiku.com/dss/plugins/info/model-drift.html).
+
+Monitoring ML models in production is often a tedious task. You can apply a simply retraining strategy based on monitoring the model’s performance: if your AUC drops by a given percentage, retrain. Although accurate, this approach requires to obtain the ground truth for your preditctions, which is not always fast, and certainly not “real time”.
+
+Instead of waiting for the ground truth, we propose to look at the recent data the model has had to score, and statistically compare it with the data on which the model was evaluated. If these datasets are too different, the model may need to be retrained.
+
+
+## Scope of the plugin
+This plugin offers a set of different DSS components to monitor input data drift (of a model):
+* Model view: visualise the drift metrics and graph
+* Recipe: compute feature drift of a deployed model
+* Recipe: compute drift between two datasets
+* Custom metric: retrieve the most recent drift metric
+
+
+## Installation and requirements
+
+Please see our [official plugin page](https://www.dataiku.com/product/plugins/model-drift-monitoring/) for installation.
+
+## Changelog
+
+**Version 2.0.0 (2020-06)**
+* New components: 
+   * Recipe: Compute feature drift of a deployed model
+   * Recipe: Compute drift between two datasets
+   * Custom metric: Retrieve last drift metric
+* Enhancement: 
+   * Add support for regression algorithms and non tree-based algorithm
+   * Add riskiest features information allowing users to immediately have the list of features that they need to be careful about (ie. features that are drifted the most and are important in the deloyed model)
+   * Add support for partitioning
+   * Add support for all types of train-test split (with/without cross-validation)
+* Bug fixes:
+   * Fix bug with boolean dtype handling that leads to mismatch prediction probability and weird categorical variable encoding.
+   * Fix bug with Date dtype and python 3.
+
+**Version 1.0.0 (2019-12)**
+
+* Initial release
+* Model view component: support for tree-based classification algorithms
+
+You can log feature requests or issues on our [dedicated Github repository](https://github.com/dataiku/dss-plugin-model-drift/issues).
+
+# License
+
+The Model drift monitoring plugin is:
+
+   Copyright (c) 2020 Dataiku SAS
+   Licensed under the [MIT License](LICENSE.md).

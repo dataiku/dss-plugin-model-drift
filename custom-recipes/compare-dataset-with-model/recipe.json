@@ -1,0 +1,73 @@
+{
+    "meta": {
+        "label": "Compute feature drift of a deployed model",
+        "description": "Measure data drift between the original training data of a model and a new dataset.",
+        "icon": "icon-anchor",
+        "displayOrderRank": 1
+    },
+
+    "selectableFromDataset": "new",
+    "kind": "PYTHON",
+    "paramsPythonSetup": "compute_model_id_choice.py",
+    "inputRoles" : [
+        {
+            "name": "model",
+            "label": "Deployed model",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": false,
+            "acceptsSavedModel": true
+        },
+        {
+            "name": "new",
+            "label": "New dataset",
+            "description": "New dataset",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "outputRoles" : [
+        {
+            "name": "output_dataset",
+            "label": "Metrics dataset",
+            "description": "Drift metrics will be stored in this dataset",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true
+        }
+    ],
+
+    "params": [
+        {
+            "name": "use_active_version",
+            "label": "Use the model's active version",
+            "type": "BOOLEAN",
+            "defaultValue": true
+        },
+        {
+            "name": "version_id",
+            "label": "Model version",
+            "type": "SELECT",
+            "getChoicesFromPython": true,
+            "visibilityCondition": "!model.use_active_version"
+
+        },
+        {
+            "name": "metric_list",
+            "label": "Metrics",
+            "type": "MULTISELECT",
+            "selectChoices": [
+                { "value": "drift_score", "label": "Drift score"},
+                { "value": "fugacity", "label": "Fugacity"},
+                { "value": "riskiest_features", "label": "Riskiest features"},
+                { "value": "feature_importance", "label": "Feature importance"}
+            ],
+            "defaultValue": ["drift_score"]
+        }
+    ],
+
+    "resourceKeys": []
+
+}

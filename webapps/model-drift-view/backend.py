@@ -4,13 +4,14 @@ import logging
 from flask import request
 import json
 import dataiku
-from dku_data_drift import DriftAnalyzer, ModelAccessor
+from dku_data_drift import DriftAnalyzer, ModelAccessor, ModelDriftConstants
 from model_metadata import get_model_handler
 logger = logging.getLogger(__name__)
 
 
-def convert(o):
-    if isinstance(o, np.int64): return int(o)  
+def convert_numpy_int64_to_int(o):
+    if isinstance(o, np.int64):
+        return int(o)
     raise TypeError
 
 @app.route('/list-datasets')
@@ -27,15 +28,15 @@ def get_drift_metrics():
         model_id = request.args.get('model_id')
         version_id = request.args.get('version_id')
         test_set = request.args.get('test_set')
-        new_test_df = dataiku.Dataset(test_set).get_dataframe()
+        new_test_df = dataiku.Dataset(test_set).get_dataframe(bool_as_str=True, limit=ModelDriftConstants.MAX_NUM_ROW)
 
         model = dataiku.Model(model_id)
         model_handler = get_model_handler(model, version_id=version_id)
         model_accessor = ModelAccessor(model_handler)
 
-        drifter = DriftAnalyzer(model_accessor)
-        drift_features, drift_clf = drifter.train_drift_model(new_test_df)
-        return json.dumps(drifter.compute_drift_metrics(drift_features, drift_clf), allow_nan=False, default=convert)
+        drifter = DriftAnalyzer()
+        drifter.fit(new_test_df, model_accessor=model_accessor)
+        return json.dumps(drifter.get_drift_metrics_for_webapp(), allow_nan=False, default=convert_numpy_int64_to_int)
     except:
         logger.error(traceback.format_exc())
         return traceback.format_exc(), 500

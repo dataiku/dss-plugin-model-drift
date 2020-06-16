@@ -1,18 +1,18 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
-import os
+
 import sys
 import random
 from collections import Counter
 from datetime import datetime
 import logging
-
 import numpy as np
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 EPOCH = datetime(1900, 1, 1)
 
-class Preprocessor:
+
+class Preprocessor(object):
 
     def __init__ (self, df=None, target=None):
         self.df = df
@@ -54,7 +54,7 @@ class Preprocessor:
                 self.df[feature] = self.df[feature].astype('double')
 
     def _get_numerical_features(self):
-        return self.df.select_dtypes(include=['number']).columns.tolist()
+        return self.df.select_dtypes(include=['number', 'M8[ns]']).columns.tolist()
 
     def _get_categorical_features(self):
         return self.df.select_dtypes(include=['object', 'category']).columns.tolist()
