@@ -19,7 +19,7 @@ class ModelAccessor(object):
         """
         Wrap the prediction type accessor of the model
         """
-        if ModelDriftConstants.CLASSIFICATION_TYPE in self.model_handler.get_prediction_type():
+        if self.model_handler.get_prediction_type() in ModelDriftConstants.DKU_CLASSIFICATION_TYPE:
             return ModelDriftConstants.CLASSIFICATION_TYPE
         elif ModelDriftConstants.REGRRSSION_TYPE in self.model_handler.get_prediction_type():
             return ModelDriftConstants.REGRRSSION_TYPE
