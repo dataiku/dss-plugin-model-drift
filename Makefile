@@ -1,4 +1,4 @@
-PLUGIN_VERSION=2.0.1
+PLUGIN_VERSION=2.0.2
 PLUGIN_ID=model-drift
 
 plugin:
