@@ -2,7 +2,6 @@
 import logging
 import numpy as np
 import math
-import pandas as pd
 from sklearn.neighbors import KernelDensity
 from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
