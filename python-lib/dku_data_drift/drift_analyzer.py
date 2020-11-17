@@ -2,6 +2,8 @@
 import logging
 import numpy as np
 import pandas as pd
+import scipy.stats
+import statsmodels.stats.proportion
 from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import KBinsDiscretizer
@@ -338,7 +340,7 @@ class DriftAnalyzer(object):
         riskiest_feature = self.get_riskiest_features(drift_feature_importance=drift_feature_importance_df, original_feature_importance=original_feature_importance_df)
         return feature_importance_metrics, riskiest_feature
     
-    def get_drift_score(self, output_raw_score=False):
+    def get_drift_score(self, output_raw_score=False, confidence_level=0.95):
 
         """
         Drift score is the accuracy of drift model (with an exponential transform by default)
@@ -349,6 +351,17 @@ class DriftAnalyzer(object):
         predicted_Y = self.drift_clf.predict(self._drift_test_X)
         test_Y = pd.Series(self._drift_test_Y)
         drift_accuracy = accuracy_score(test_Y, predicted_Y)
+
+        # 95% confidence interval around accuracy
+        nb_correct = sum(test_Y == predicted_Y)
+        nb_total = len(test_Y)
+        drift_accuracy_lower, drift_accuracy_upper = statsmodels.stats.proportion.proportion_confint(
+            nb_correct, nb_total, method="wilson", alpha=(1 - confidence_level)
+        )
+
+        # H0: there is no drift (== domain classifier is correct 50% of the time)
+        drift_test_pvalue = scipy.stats.binom_test(nb_correct, nb_total, p=.5, alternative='greater')
+
         if output_raw_score:
             return drift_accuracy
         else:
