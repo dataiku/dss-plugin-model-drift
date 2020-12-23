@@ -86,7 +86,7 @@ function draw(data) {
     recommendation_text = "";
     if (data.riskiest_features.length>0){
         var i;
-        var recommendation_text = "We recommend you to check the features: <br>"
+        var recommendation_text = ""
         for (i = 0; i < data.riskiest_features.length; i++) {
             recommendation_text += data.riskiest_features[i];
             if (i < (data.riskiest_features.length - 1)){
@@ -104,7 +104,7 @@ function draw(data) {
 }
 
 function drawFugacity(data) {
-    $('#fugacity-score').html(json2table(data, 'table ml-table'));
+    $('#fugacity-score').html(json2table(data, 'table text-sb table-bordered table-hover')); // ml-table
 }
 
 function json2table(json, classes) {
@@ -117,18 +117,29 @@ function json2table(json, classes) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
+    /*
     cols.map(function(col) {
-        header += '<th>' + capitalizeFirstLetter(col) + '</th>';
+        header += '<td>' + capitalizeFirstLetter(col) + '</td>';
     });
+   */
+    body += '<tr>';
+    cols.map(function(col){
+        body += '<td>' + capitalizeFirstLetter(col) + '</td>';
+        //body += '</tr';
+    })
+    body += '</tr>';
+
 
     json.map(function(row) {
-        body += '<tr>';
+        //body += '<tr>';
         cols.map(function(colName) {
-            body += '<td align="middle">' + row[colName] + '</td>';
+            body += '<td>' + row[colName] + '</td>';
         });
         body += '</tr>';
     });
-    return `<div><table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
+    //return `<div><table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
+    return `<div><table class="${classes}"><tbody>${body}</tbody></table></div>`;
+
 }
 
 function draw_KDE_classification(data) {
@@ -437,8 +448,8 @@ function drawFeatureImportance(data) {
     let tipMouseover = function(d) {
         var html  = d["feature"];
         tooltip.html(html)
-            .style("left", d + "px")
-            .style("top", d  + "px")
+            .style("left",d3.select(this).attr("cx") + "px")
+            .style("top", d3.select(this).attr("cy") + "px")
             .transition()
             .duration(200) // ms
             .style("opacity", .9)
