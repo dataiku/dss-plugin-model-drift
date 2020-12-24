@@ -209,7 +209,7 @@ h3 {
 .huge-title-r {
    font-family: var(--font-family);
     font-style: normal;
-    font-size: 45px;
+    font-size: 40px;
     color: #222222;
     font-weight: 230;
     line-height: 69px;
@@ -288,6 +288,14 @@ h3 {
     color: #666666;
 }
 
+.tiny-text-r {
+    font-family: var(--font-family);
+    font-style: normal;
+    font-weight: normal;
+    font-size: 10px;
+    line-height: 15px;
+    color: #BBBBBB;
+}
 
 .text-highlight {
     font-weight: 500;

@@ -11,7 +11,7 @@
     <div class="view-content text-r">
         <div style="display: inline;">
             Select dataset containing new test data
-            <select id="dataset-selector" class="box text-r"></select>
+            <select id="dataset-selector" class="box2 text-r"></select>
             <button class="dku-btn dku-btn-primary notrunning-state" id="run-button" type="button" style="color: #FFFFFF;">COMPUTE DRIFT</button>
             <span class="running-state" style="display: none;">Computing ...</span>
         </div>
@@ -32,7 +32,8 @@
 <div class="container-fluid" id="error_message" style="box-sizing: border-box; padding: 0;"></div>
 <div class="result-state" style="display: none; padding-top:16px; padding-bottom:16px">
     <div class="container-fluid">
-        <div class="medium-title-sb" style="padding-bottom:16px">Global Drift Score</div>
+        <div class="medium-title-sb" style="padding-bottom:4px">Global Drift Score</div>
+        <div class="tiny-text-r" style="padding-bottom:16px">Sampling <b><span id="sample-size"></span></b> lines per dataset</div>
         <div class="small-title-r" style="padding-bottom:16px">Drift model</div>
         <div class="row">
                 <div class="col drift_score_container">

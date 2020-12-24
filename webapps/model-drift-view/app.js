@@ -38,9 +38,19 @@ function runAnalysis($this) {
         .then(
             function(data) {
                 // first box
-                $('#drift-score').text(data['drift_accuracy']);
+                $('#accuracy').text(data['drift_accuracy']);
+                $('#lower-bound').text(data['drift_accuracy_lower']);
+                $('#upper-bound').text(data['drift_accuracy_upper']);
                 $('#inline-drift-score').text(data['drift_accuracy']);
                 $('#inline-drift-score-2').text(data['drift_accuracy']);
+                $('#binomial-p-value').text(data['drift_test_pvalue']);
+                if (data['drift_test_pvalue'] <= 0.05){
+                    $('#binomial-conclusion').innerHTML = '<span>&#8804;</span>' + '0.05 so drift detected';
+                } else {
+                    $('#binomial-conclusion').text('> 0.05 so no drift detected')
+                }
+                $('#sample-size').text(data['sample_size']);
+
                 changeInputColor('#drift-score', data['drift_accuracy']);
                 $('#error_message').html('');
 
