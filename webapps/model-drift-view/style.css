@@ -363,3 +363,22 @@ table.table.table-bordered_out {
     border-left: 1px solid #DDDDDD;
     border-right: 1px solid #DDDDDD;
 }
+
+
+
+.grand-title-landing{
+    font-family: var(--font-family);
+    font-style: normal;
+    font-weight: 300;
+    font-size: 22px;
+    line-height: 28px;
+    text-align: center;
+
+    color: #666666;
+
+    flex: none;
+    order: 1;
+    align-self: center;
+    flex-grow: 0;
+    margin: 0px 24px;
+}

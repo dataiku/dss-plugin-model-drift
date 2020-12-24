@@ -12,6 +12,7 @@ dataiku.webappBackend.get('list-datasets')
 
 $('#run-button').click(function() {
     dataiku.webappMessages.clear();
+    $('.landing-page').hide();
     runAnalysis($('#run-button'));
 });
 
@@ -87,7 +88,7 @@ function draw(data) {
     recommendation_text = "";
     if (data.riskiest_features.length>0){
         var i;
-        var recommendation_text = ""
+        var recommendation_text = "We recommend you to check the following feature(s): "
         for (i = 0; i < data.riskiest_features.length; i++) {
             recommendation_text += data.riskiest_features[i];
             if (i < (data.riskiest_features.length - 1)){
