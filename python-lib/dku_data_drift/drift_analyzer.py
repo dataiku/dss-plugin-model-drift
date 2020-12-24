@@ -131,7 +131,7 @@ class DriftAnalyzer(object):
                 'drift_accuracy': round(drift_accuracy, 3),
                 'drift_accuracy_lower': round(drift_accuracy_lower, 3),
                 'drift_accuracy_upper': round(drift_accuracy_upper, 3),
-                'drift_test_pvalue': round(drift_test_pvalue, 6),
+                'drift_test_pvalue': round(drift_test_pvalue, 5),
                 'kde': kde_dict,
                 'fugacity': fugacity_metrics,
                 'label_list': label_list,

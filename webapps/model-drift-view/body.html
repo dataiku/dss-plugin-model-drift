@@ -61,8 +61,7 @@
                 <div class="col explanation text-r"  id="drift-explanation">
                     <b>Lower is better.</b>
                     <br>
-                    The drift score (between 0 and 1) is low if the test dataset (used to evaluate your model) and your input dataset are indistinguishable. See <a href="https://www.dataiku.com/community/plugins/info/model-drift.html" target="_blank">the documentation</a> for details. <br>
-                    Your drift score of <span id="inline-drift-score"></span> indicates <span id="inline-drift-score-explain"></span>
+                    In order to detect data drift, we train a random forest classifier (the drift model)  to discriminate the new data set from the test set.  If this classifier has accuracy > 0.5, it implies that test data and new data can be distinguished and that you are observing data drift. You may consider retraining your model in that situation.
                 </div>
         </div>
 
@@ -91,7 +90,9 @@
                 </table>
             </div>
             <div class="col explanation text-r">
-            Binomial description
+                <b>The hypothesis tested</b> is that there is no drift, in which case the expected drift model accuracy is 0.5 (datasets undistinguishable). The observed accuracy might deviate from this expectation and the Binomial test evaluates whether this deviation is statistically significant, modelling the number of correct predictions as a random variable drawn from a Binomial distribution.
+                <br>
+                The p-value is the probability to observe this particular accuracy (or larger) under the hypothesis of absent drift. If this probability is lower than the significance level (i.e. 5%), it’s then unlikely to be in the situation of absent drift: the hypothesis of no drift is rejected, triggering a drift detection. The significance level indicates the rate of falsely-detected drifts we are ready to accept from the test.
             </div>
         </div>
     </div>
