@@ -88,9 +88,17 @@ def build_drift_metric_dataframe(drifter, metric_list, based_df, has_model_as_in
 
     if ModelDriftConstants.DRIFT_SCORE in metric_list:
         # new_df_with_drift_score, column_description_dict = extract_drift_score(drifter, new_df, column_description_dict)
-        drift_score = drifter.get_drift_score()
+        drift_score, drift_accuracy_lower, drift_accuracy_upper, drift_test_pvalue = drifter.get_drift_score(output_raw_score=True)
         new_df[ModelDriftConstants.DRIFT_SCORE] = [drift_score]
         column_description_dict[ModelDriftConstants.DRIFT_SCORE] = ModelDriftConstants.DRIFT_SCORE_DEFINITION
+
+        new_df[ModelDriftConstants.BINOMIAL_P_VALUE] = [drift_test_pvalue]
+        column_description_dict[ModelDriftConstants.BINOMIAL_P_VALUE] = ModelDriftConstants.BINOMIAL_TEST_DEFINITION
+
+        new_df[ModelDriftConstants.BINOMIAL_LOWER_BOUND] = [drift_accuracy_lower]
+        new_df[ModelDriftConstants.BINOMIAL_UPPER_BOUND] = [drift_accuracy_upper]
+
+
 
     if ModelDriftConstants.FUGACITY in metric_list:
         if drifter.get_prediction_type() == ModelDriftConstants.CLASSIFICATION_TYPE:

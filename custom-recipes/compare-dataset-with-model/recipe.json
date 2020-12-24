@@ -59,7 +59,7 @@
             "label": "Metrics",
             "type": "MULTISELECT",
             "selectChoices": [
-                { "value": "drift_score", "label": "Drift score"},
+                { "value": "drift_model_accuracy", "label": "Drift score"},
                 { "value": "fugacity", "label": "Fugacity"},
                 { "value": "riskiest_features", "label": "Riskiest features"},
                 { "value": "feature_importance", "label": "Feature importance"}
