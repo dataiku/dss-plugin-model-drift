@@ -75,7 +75,8 @@ function draw(data) {
             break;
         case "REGRESSION":
             d3.select("#fugacity_div").selectAll("div").remove();
-            d3.select("#kde_container_div").select("h3").remove();
+            d3.select("#fugacity_label").remove();
+            d3.select("#kde_class_option").select("#label-list").remove();
             draw_KDE_regression(data['kde']);
             break;
         default:

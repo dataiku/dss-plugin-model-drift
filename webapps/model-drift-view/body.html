@@ -22,7 +22,7 @@
         </div>
         <div style="display: inline;">
             Dataset containing new data:
-            <select id="dataset-selector" style="box2 text-r"></select>
+            <select id="dataset-selector" class="box text-r"></select>
             <button class="dku-btn dku-btn-primary notrunning-state" id="run-button" type="button" style="color: #FFFFFF;">COMPUTE</button>
             <span class="running-state" style="display: none;">Computing ...</span>
         </div>
@@ -33,25 +33,25 @@
 <div class="result-state" style="display: none; padding-top:16px; padding-bottom:16px">
     <div class="container-fluid">
         <div class="medium-title-sb" style="padding-bottom:8px">Global Drift Score</div>
-        <div class="small-title-sb" style="padding-bottom:8px">Drift model</div>
+        <div class="small-title-r" style="padding-bottom:8px">Drift model</div>
         <div class="row">
                 <div class="col drift_score_container">
                     <div>
                         <table class="table table-condensed text-sb">
                           <tbody>
                             <tr>
-                                <td>Lower bound</td>
+                                <td colspan="2">Lower bound</td>
                                 <td></td>
-                                <td>Accuracy</td>
+                                <td colspan="2">Accuracy</td>
                                 <td></td>
-                                <td>Upper bound</td>
+                                <td colspan="2">Upper bound</td>
                             </tr>
                             <tr>
-                                <td style="border-top: none;">0.45</td>
-                                <td style="border-top: none;"><=</td>
-                                <td style="border-top: none;">0.47</td>
-                                <td style="border-top: none;"><=</td>
-                                <td style="border-top: none;">0.6</td>
+                                <td id="lower-bound" colspan="2" class="grand-title-r" style="border-top: none; vertical-align: middle; padding-top:0px">0.45</td>
+                                <td class="grand-title-r" style="border-top: none; vertical-align: middle; padding-top:0px"><span>&#8804;</span></td>
+                                <td id="accuracy" colspan="2" class="huge-title-r" style="border-top: none; vertical-align: middle; padding-top:0px">0.47</td>
+                                <td class="grand-title-r" style="border-top: none; vertical-align: middle; padding-top:0px"><span>&#8804;</span></td>
+                                <td id="upper-bound" colspan="2" class="grand-title-r" style="border-top: none; vertical-align: middle; padding-top:0px">0.6</td>
                             </tr>
                           </tbody>
                         </table>
@@ -65,14 +65,14 @@
                 </div>
         </div>
 
-        <div class="small-title-sb" style="padding-bottom:8px">Binomial test</div>
+        <div class="small-title-r" style="padding-bottom:8px">Binomial test</div>
         <div class="row">
             <div class="col">
                 <table class="table table-condensed text-sb table-hover">
                   <tbody>
                     <tr>
                       <th>Hypothesis tested</th>
-                      <td>There is no drift (accuracy <=0.5)</td>
+                      <td>There is no drift (accuracy <span>&#8804;</span> 0.5)</td>
                     </tr>
                     <tr>
                       <th>Significance level</th>
@@ -80,11 +80,11 @@
                     </tr>
                     <tr>
                       <th>p-value</th>
-                      <td>0.00020</td>
+                      <td id="binomial-p-value">0.00020</td>
                     </tr>
                     <tr>
                       <th>Conclusion</th>
-                      <td><0.05 so drift detected</td>
+                      <td id="binomial-conclusion">< 0.05 so drift detected</td>
                     </tr>
                   </tbody>
                 </table>
@@ -97,7 +97,7 @@
     <hr/>
     <div class="container-fluid">
         <div class="medium-title-sb" style="padding-bottom:8px">Model Information</div>
-        <div class="small-title-sb" style="padding-bottom:8px">Fugacity</div>
+        <div class="small-title-r" id="fugacity_label" style="padding-bottom:8px">Fugacity</div>
         <div class="row" id="fugacity_div">
             <div class="col fugacity_score_container">
                 <div id="fugacity-score"></div>
@@ -106,7 +106,7 @@
             </div>
         </div>
 
-        <div class="small-title-sb" style="padding-bottom:8px">Predicted probability density chart <select id="label-list"></select> </div>
+        <div class="small-title-r" id="kde_class_option" style="padding-bottom:8px padding-top:8px">Predicted probability density chart <select class="box text-r" id="label-list"></select> </div>
         <div class="row">
             <div class="col kde_chart_container" id="kde_container_div">
                 <div id="kde-chart"></div>
@@ -119,7 +119,7 @@
     </div>
     <hr/>
     <div class="container-fluid" id="feature_importance_div">
-        <div class="medium-title-sb">Feature Drift Overview</div>
+        <div class="medium-title-sb" style="padding-bottom:8px">Feature Drift Overview</div>
         <div class="row">
             <div class="col impl_plot_container">
                 <div id="feat-imp-plot"></div>

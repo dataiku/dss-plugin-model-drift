@@ -206,21 +206,38 @@ h3 {
 
 }
 
+.huge-title-r {
+   font-family: var(--font-family);
+    font-style: normal;
+    font-size: 45px;
+    color: #222222;
+    font-weight: 230;
+    line-height: 69px;
+}
 .grand-title-r{
     font-family: var(--font-family);
     font-style: normal;
-    font-weight: normal;
+    font-weight: 300;
     font-size: 22px;
     line-height: 28px;
     text-align: center;
 
-    color: #666666;
+    color: #444444;
 
     flex: none;
     order: 1;
     align-self: center;
     flex-grow: 0;
     margin: 0px 24px;
+}
+
+.small-title-r {
+    font-family: var(--font-family);
+    font-style: normal;
+    font-weight: normal;
+    font-size: 15px;
+    line-height: 20px;
+    color: #222222;
 }
 
 .small-title-sb {
@@ -259,6 +276,8 @@ h3 {
     text-align: left;
     color: #222222;
 }
+
+
 
 .text {
     font-family: var(--font-family);
