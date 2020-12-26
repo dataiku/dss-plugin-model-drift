@@ -20,12 +20,11 @@
 
 <div class="landing-page" style="padding-top:40px; padding-bottom:40px; padding-left:100px; padding-right:100px">
     </br> </br> </br></br></br>
-<div class="ultralarge-title-sb">
+<div class="ultralarge-title-sb" style="padding-bottom:16px">
     Input Data Drift
 </div>
-    </br>
 <div class="grand-title-landing">
-    Get insights on the applicability of a model by exploring how a dataset of new observations differs from the original evaluation (test) dataset.
+    Get insights on the applicability of a model by exploring how a dataset of new data differs from the original evaluation (test) dataset.
 </div>
 </div>
 
@@ -33,7 +32,7 @@
 <div class="result-state" style="display: none; padding-top:16px; padding-bottom:16px">
     <div class="container-fluid">
         <div class="medium-title-sb" style="padding-bottom:4px">Global Drift Score</div>
-        <div class="tiny-text-r" style="padding-bottom:16px">Sampling <b><span id="sample-size"></span></b> lines per dataset</div>
+        <div class="tiny-text-r" style="padding-bottom:16px">Sampling first <b><span id="sample-size"></span></b> rows per dataset</div>
         <div class="small-title-r" style="padding-bottom:16px">Drift model</div>
         <div class="row">
                 <div class="col drift_score_container">
