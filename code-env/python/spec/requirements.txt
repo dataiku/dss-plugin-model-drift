@@ -7,3 +7,4 @@ numpy==1.16.6
 future==0.18.2
 joblib==0.14.1
 enum34==1.1.10
+statsmodels==0.9.0

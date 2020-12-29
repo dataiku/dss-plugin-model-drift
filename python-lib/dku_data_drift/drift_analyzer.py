@@ -2,11 +2,12 @@
 import logging
 import numpy as np
 import pandas as pd
+import scipy.stats
+import statsmodels.stats.proportion
 from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import KBinsDiscretizer
 from dku_data_drift.preprocessing import Preprocessor
-from dku_data_drift.dataframe_helpers import not_enough_data
 from dku_data_drift.model_tools import format_proba_density
 from dku_data_drift.model_drift_constants import ModelDriftConstants
 
@@ -26,6 +27,7 @@ class DriftAnalyzer(object):
         self.has_predictions = False
         self.target = None
         self.features_in_drift_model = None
+        self.sample_size = None
 
     def get_prediction_type(self):
         return self.prediction_type
@@ -109,7 +111,7 @@ class DriftAnalyzer(object):
             return {}
 
         logger.info("Computing drift metrics ...")
-        drift_accuracy = self.get_drift_score()
+        drift_accuracy, drift_accuracy_lower, drift_accuracy_upper, drift_test_pvalue = self.get_drift_score(output_raw_score=True)
         feature_importance_metrics, riskiest_features = self._get_feature_importance_metrics()
 
         if self.prediction_type == ModelDriftConstants.REGRRSSION_TYPE:
@@ -123,8 +125,12 @@ class DriftAnalyzer(object):
             raise ValueError('Prediction type not defined.')
 
         return {'type': self.prediction_type,
+                'sample_size': self.sample_size,
                 'feature_importance': feature_importance_metrics,
-                'drift_accuracy': drift_accuracy,
+                'drift_accuracy': round(drift_accuracy, 3),
+                'drift_accuracy_lower': round(drift_accuracy_lower, 3),
+                'drift_accuracy_upper': round(drift_accuracy_upper, 3),
+                'drift_test_pvalue': round(drift_test_pvalue, 5),
                 'kde': kde_dict,
                 'fugacity': fugacity_metrics,
                 'label_list': label_list,
@@ -243,17 +249,12 @@ class DriftAnalyzer(object):
         :return: a dataframe with data source target (orignal vs new)
         """
 
-        if not_enough_data(new_df, min_len=min_num_row):
-            raise ValueError('The new dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(new_df), min_num_row))
-
-        if not_enough_data(original_df, min_len=min_num_row):
-            raise ValueError('The original dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(original_df), min_num_row))
-
         original_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_ORIGINAL
         new_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_NEW
 
         logger.info("Rebalancing data:")
         number_of_rows = min(original_df.shape[0], new_df.shape[0], max_num_row)
+        self.sample_size = number_of_rows
         logger.info(" - original dataset had %s rows, new dataset has %s. Selecting the first %s for each." % (original_df.shape[0], new_df.shape[0], number_of_rows))
 
         df = pd.concat([original_df.head(number_of_rows), new_df.head(number_of_rows)], sort=False)
@@ -338,19 +339,32 @@ class DriftAnalyzer(object):
         riskiest_feature = self.get_riskiest_features(drift_feature_importance=drift_feature_importance_df, original_feature_importance=original_feature_importance_df)
         return feature_importance_metrics, riskiest_feature
     
-    def get_drift_score(self, output_raw_score=False):
+    def get_drift_score(self, output_raw_score=False, confidence_level=0.95):
 
         """
         Drift score is the accuracy of drift model (with an exponential transform by default)
 
-        :param output_raw_score:
+        :param
+            output_raw_score
+            confidence_level
         :return:
         """
         predicted_Y = self.drift_clf.predict(self._drift_test_X)
         test_Y = pd.Series(self._drift_test_Y)
         drift_accuracy = accuracy_score(test_Y, predicted_Y)
+
+        # 95% confidence interval around accuracy
+        nb_correct = sum(test_Y == predicted_Y)
+        nb_total = len(test_Y)
+        drift_accuracy_lower, drift_accuracy_upper = statsmodels.stats.proportion.proportion_confint(
+            nb_correct, nb_total, method="wilson", alpha=(1 - confidence_level)
+        )
+
+        # H0: there is no drift (== domain classifier is correct 50% of the time)
+        drift_test_pvalue = scipy.stats.binom_test(nb_correct, nb_total, p=.5, alternative='greater')
+
         if output_raw_score:
-            return drift_accuracy
+            return drift_accuracy, drift_accuracy_lower, drift_accuracy_upper, drift_test_pvalue
         else:
             exponential_function = lambda x: round(np.exp(1 - 1 / (np.power(x, 2.5))), 2)
             return exponential_function(drift_accuracy) # make the score looks more "logic" from the user point of view
