@@ -129,27 +129,20 @@ function json2table(json, classes) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    /*
-    cols.map(function(col) {
-        header += '<td>' + capitalizeFirstLetter(col) + '</td>';
-    });
-   */
     body += '<tr>';
     cols.map(function(col){
         body += '<td>' + capitalizeFirstLetter(col) + '</td>';
-        //body += '</tr';
     })
     body += '</tr>';
 
 
     json.map(function(row) {
-        //body += '<tr>';
         cols.map(function(colName) {
             body += '<td>' + row[colName] + '</td>';
         });
         body += '</tr>';
     });
-    //return `<div><table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
+
     return `<div><table class="${classes}"><tbody>${body}</tbody></table></div>`;
 
 }
