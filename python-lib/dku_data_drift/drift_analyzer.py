@@ -8,7 +8,6 @@ from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import KBinsDiscretizer
 from dku_data_drift.preprocessing import Preprocessor
-from dku_data_drift.dataframe_helpers import not_enough_data
 from dku_data_drift.model_tools import format_proba_density
 from dku_data_drift.model_drift_constants import ModelDriftConstants
 

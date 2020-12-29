@@ -96,8 +96,10 @@ def build_drift_metric_dataframe(drifter, metric_list, based_df, has_model_as_in
         column_description_dict[ModelDriftConstants.BINOMIAL_P_VALUE] = ModelDriftConstants.BINOMIAL_TEST_DEFINITION
 
         new_df[ModelDriftConstants.BINOMIAL_LOWER_BOUND] = [drift_accuracy_lower]
-        new_df[ModelDriftConstants.BINOMIAL_UPPER_BOUND] = [drift_accuracy_upper]
+        column_description_dict[ModelDriftConstants.BINOMIAL_LOWER_BOUND] = ModelDriftConstants.BINOMIAL_LOWER_BOUND_DEFINITION
 
+        new_df[ModelDriftConstants.BINOMIAL_UPPER_BOUND] = [drift_accuracy_upper]
+        column_description_dict[ModelDriftConstants.BINOMIAL_UPPER_BOUND] = ModelDriftConstants.BINOMIAL_UPPER_BOUND_DEFINITION
 
 
     if ModelDriftConstants.FUGACITY in metric_list:

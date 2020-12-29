@@ -12,7 +12,9 @@ class ModelDriftConstants(object):
     BINOMIAL_TEST_DEFINITION = 'The hypothesis tested is that there is no drift, in which case the expected drift model accuracy is 0.5 (datasets undistinguishable). The observed accuracy might deviate from this expectation and the Binomial test evaluates whether this deviation is statistically significant, modelling the number of correct predictions as a random variable drawn from a Binomial distribution. The p-value is the probability to observe this particular accuracy (or larger) under the hypothesis of absent drift. If this probability is lower than the significance level (i.e. 5%), it’s then unlikely to be in the situation of absent drift: the hypothesis of no drift is rejected, triggering a drift detection. The significance level indicates the rate of falsely-detected drifts we are ready to accept from the test.'
     BINOMIAL_P_VALUE = 'binomial_test_p_value'
     BINOMIAL_LOWER_BOUND = 'accuracy_lower_bound'
+    BINOMIAL_LOWER_BOUND_DEFINITION = 'Confidence interval lower bound for the accuracy of the domain classifier'
     BINOMIAL_UPPER_BOUND = 'accuracy_upper_bound'
+    BINOMIAL_UPPER_BOUND_DEFINITION = 'Confidence interval upper bound for the accuracy of the domain classifier'
 
     FUGACITY = 'fugacity'
     FUGACITY_CLASSIF_DEFINITION = 'Proportion of samples predicted (in %) in each class when scoring on both the original test and the new input dataset.'
