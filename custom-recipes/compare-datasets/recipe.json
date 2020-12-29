@@ -44,10 +44,10 @@
             "label": "Metrics",
             "type": "MULTISELECT",
             "selectChoices": [
-                { "value": "drift_score", "label": "Drift score"},
+                { "value": "drift_model_accuracy", "label": "Drift score"},
                 { "value": "feature_importance", "label": "Most drifted features"}
             ],
-            "defaultValue": ["drift_score"]
+            "defaultValue": ["drift_model_accuracy"]
         },
         {
             "name": "columns_to_remove",

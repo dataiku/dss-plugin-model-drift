@@ -12,6 +12,7 @@ dataiku.webappBackend.get('list-datasets')
 
 $('#run-button').click(function() {
     dataiku.webappMessages.clear();
+    $('.landing-page').hide();
     runAnalysis($('#run-button'));
 });
 
@@ -37,9 +38,19 @@ function runAnalysis($this) {
         .then(
             function(data) {
                 // first box
-                $('#drift-score').text(data['drift_accuracy']);
+                $('#accuracy').text(data['drift_accuracy']);
+                $('#lower-bound').text(data['drift_accuracy_lower']);
+                $('#upper-bound').text(data['drift_accuracy_upper']);
                 $('#inline-drift-score').text(data['drift_accuracy']);
                 $('#inline-drift-score-2').text(data['drift_accuracy']);
+                $('#binomial-p-value').text(data['drift_test_pvalue']);
+                if (data['drift_test_pvalue'] <= 0.05){
+                    $('#binomial-conclusion').innerHTML = '<span>&#8804;</span>' + '0.05 so drift detected';
+                } else {
+                    $('#binomial-conclusion').text('> 0.05 so no drift detected')
+                }
+                $('#sample-size').text(data['sample_size']);
+
                 changeInputColor('#drift-score', data['drift_accuracy']);
                 $('#error_message').html('');
 
@@ -75,7 +86,8 @@ function draw(data) {
             break;
         case "REGRESSION":
             d3.select("#fugacity_div").selectAll("div").remove();
-            d3.select("#kde_container_div").select("h3").remove();
+            d3.select("#fugacity_label").remove();
+            d3.select("#kde_class_option").select("#label-list").remove();
             draw_KDE_regression(data['kde']);
             break;
         default:
@@ -86,7 +98,7 @@ function draw(data) {
     recommendation_text = "";
     if (data.riskiest_features.length>0){
         var i;
-        var recommendation_text = "We recommend you to check the features: <br>"
+        var recommendation_text = "We recommend you to check the following feature(s): "
         for (i = 0; i < data.riskiest_features.length; i++) {
             recommendation_text += data.riskiest_features[i];
             if (i < (data.riskiest_features.length - 1)){
@@ -104,7 +116,7 @@ function draw(data) {
 }
 
 function drawFugacity(data) {
-    $('#fugacity-score').html(json2table(data, 'table ml-table'));
+    $('#fugacity-score').html(json2table(data, 'table text-sb table-bordered table-hover')); // ml-table
 }
 
 function json2table(json, classes) {
@@ -117,18 +129,22 @@ function json2table(json, classes) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    cols.map(function(col) {
-        header += '<th>' + capitalizeFirstLetter(col) + '</th>';
-    });
+    body += '<tr>';
+    cols.map(function(col){
+        body += '<td>' + capitalizeFirstLetter(col) + '</td>';
+    })
+    body += '</tr>';
+
 
     json.map(function(row) {
-        body += '<tr>';
         cols.map(function(colName) {
-            body += '<td align="middle">' + row[colName] + '</td>';
+            body += '<td>' + row[colName] + '</td>';
         });
         body += '</tr>';
     });
-    return `<div><table class="${classes}"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table></div>`;
+
+    return `<div><table class="${classes}"><tbody>${body}</tbody></table></div>`;
+
 }
 
 function draw_KDE_classification(data) {
@@ -437,8 +453,8 @@ function drawFeatureImportance(data) {
     let tipMouseover = function(d) {
         var html  = d["feature"];
         tooltip.html(html)
-            .style("left", d + "px")
-            .style("top", d  + "px")
+            .style("left",d3.select(this).attr("cx") + "px")
+            .style("top", d3.select(this).attr("cy") + "px")
             .transition()
             .duration(200) // ms
             .style("opacity", .9)
