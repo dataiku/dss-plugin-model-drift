@@ -19,6 +19,11 @@ Please see our [official plugin page](https://www.dataiku.com/product/plugins/mo
 
 ## Changelog
 
+**Version 3.0.0 (2020-12)**
+* Enhancement:
+  * Add binomial test to check the reliability of drift score.
+  * Improve model view's UI.
+
 **Version 2.0.0 (2020-06)**
 * New components: 
    * Recipe: Compute feature drift of a deployed model
