@@ -162,7 +162,6 @@ table.ml-table th, table.ml-table td {
 /* Standard components */
 
 .explanation { /* try to keep in sync with DSS .doctor-explanation */
-    font-size: 1em;
     background: #e6eef2;
     padding: 20px;
     border-radius: 5px;
