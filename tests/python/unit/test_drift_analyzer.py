@@ -9,14 +9,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-
 import pytest
-
-## Add stuff to the path to enable exec outside of DSS
-plugin_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.join(plugin_root, 'python-lib'))
-
-print(plugin_root)
 from dku_data_drift import DriftAnalyzer, ModelAccessor
 
 RANDOM_SEED = 65537 # Fermat prime number <3
