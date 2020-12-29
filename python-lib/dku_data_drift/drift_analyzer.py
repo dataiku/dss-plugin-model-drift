@@ -250,12 +250,6 @@ class DriftAnalyzer(object):
         :return: a dataframe with data source target (orignal vs new)
         """
 
-        if not_enough_data(new_df, min_len=min_num_row):
-            raise ValueError('The new dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(new_df), min_num_row))
-
-        if not_enough_data(original_df, min_len=min_num_row):
-            raise ValueError('The original dataset is too small ({} rows) to have stable result, it needs to have at least {} rows'.format(len(original_df), min_num_row))
-
         original_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_ORIGINAL
         new_df[ModelDriftConstants.ORIGIN_COLUMN] = ModelDriftConstants.FROM_NEW
 
