@@ -1,3 +1,4 @@
+unit.xml
 state.json
 *.pyc
 .DS_Store
