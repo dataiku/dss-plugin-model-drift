@@ -13,6 +13,11 @@
             "type": "SAVED_MODEL",
             "targetParamsKey": "modelId",
             "pathParamsKey": "versionId"
+        },
+        {
+          "type": "ANALYSIS",
+          "contentType": "prediction",
+          "targetParamsKey": "trainedModelFullModelId"
         }
     ],
     "params":[]
