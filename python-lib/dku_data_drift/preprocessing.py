@@ -14,7 +14,7 @@ EPOCH = datetime(1900, 1, 1)
 class Preprocessor(object):
 
     def __init__ (self, df=None, target=None):
-        self.df = df
+        self.df = df.reset_index(drop=True)
         self.target = target
         self._categorical_features = []
         self._numerical_features = []
