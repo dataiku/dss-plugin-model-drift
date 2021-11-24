@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import logging
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from dku_data_drift.model_tools import SurrogateModel
 from dku_data_drift.model_drift_constants import ModelDriftConstants
 
 logger = logging.getLogger(__name__)
 
-ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier]
+ALGORITHMS_WITH_VARIABLE_IMPORTANCE = [RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, DecisionTreeClassifier,
+                                       RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor, DecisionTreeRegressor]
 
 
 class ModelAccessor(object):
@@ -97,5 +98,7 @@ class ModelAccessor(object):
             if isinstance(algo, algorithm):
                 return True
             elif predictor.params.modeling_params.get('algorithm') == 'XGBOOST_CLASSIFICATION':
+                return True
+            elif predictor.params.modeling_params.get('algorithm') == 'XGBOOST_REGRESSION':
                 return True
         return False
