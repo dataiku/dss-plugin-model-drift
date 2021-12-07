@@ -3,6 +3,7 @@ import logging
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier, RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.calibration import CalibratedClassifierCV
 from dku_data_drift.model_tools import SurrogateModel
 from dku_data_drift.model_drift_constants import ModelDriftConstants
 
@@ -94,11 +95,17 @@ class ModelAccessor(object):
     def _algorithm_is_tree_based(self):
         predictor = self.get_predictor()
         algo = predictor._clf
+        if isinstance(algo, CalibratedClassifierCV):
+            logger.info('Algorithm is CalibratedClassifierCV.')
+            return False
         for algorithm in ALGORITHMS_WITH_VARIABLE_IMPORTANCE:
             if isinstance(algo, algorithm):
+                logger.info('Algorithm is tree-based: ', algo)
                 return True
             elif predictor.params.modeling_params.get('algorithm') == 'XGBOOST_CLASSIFICATION':
+                logger.info('Algorithm is tree-based: XGBOOST_CLASSIFICATION')
                 return True
             elif predictor.params.modeling_params.get('algorithm') == 'XGBOOST_REGRESSION':
+                logger.info('Algorithm is tree-based: XGBOOST_REGRESSION')
                 return True
         return False
