@@ -19,6 +19,11 @@ Please see our [official plugin page](https://www.dataiku.com/product/plugins/mo
 
 ## Changelog
 
+****Version 3.1.5 (2021-12)**
+* Enhancement: 
+  * Use feature importance from Tree-based regression models.
+  * Use surrogate model for CalibratedClassifierCV. 
+
 **Version 3.0.0 (2020-12)**
 * Enhancement:
   * Add binomial test to check the reliability of drift score.
