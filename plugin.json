@@ -1,6 +1,6 @@
 {
     "id": "model-drift",
-    "version": "3.1.4",
+    "version": "3.1.5",
     "meta": {
         "label": "Model drift monitoring",
         "description": "Get insights on data drift between two (training) datasets.",

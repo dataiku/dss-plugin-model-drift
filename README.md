@@ -19,6 +19,10 @@ Please see our [official plugin page](https://www.dataiku.com/product/plugins/mo
 
 ## Changelog
 
+****Version 3.1.5 (2022-07)**
+* Misc:
+  * Load js package locally to support offline DSS instances.
+
 ****Version 3.1.4 (2022-03)**
 * Misc:
   * Add cloudpickle to code-env requirements.
