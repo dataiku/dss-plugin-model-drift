@@ -1,4 +1,4 @@
-⚠️ Starting with DSS version 10.0.0, this plugin is considered as "Deprecated" and will be maintained only to fix critical issues. We recommend using the native feature Model Evaluation Store: https://doc.dataiku.com/dss/latest/python-api/model-evaluation-stores.html
+⚠️ Starting with DSS version 10.0.0, this plugin is considered as "Deprecated" and will be maintained only to fix critical issues. We recommend using the native feature [Model Evaluation Store](https://doc.dataiku.com/dss/latest/python-api/model-evaluation-stores.html).
 
 
 # Model drift monitoring
