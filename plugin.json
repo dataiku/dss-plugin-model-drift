@@ -1,9 +1,9 @@
 {
     "id": "model-drift",
-    "version": "3.1.5",
+    "version": "3.1.6",
     "meta": {
-        "label": "Model drift monitoring",
-        "description": "Get insights on data drift between two (training) datasets.",
+        "label": "Model drift monitoring (Deprecated)",
+        "description": "We recommend using the native feature Model Evaluation Store. Get insights on data drift between two (training) datasets.",
         "author": "Dataiku (Léo Dreyfus-Schmidt, Du Phan & Thibault Desfontaines)",
         "icon": "icon-anchor",
     	"supportLevel": "TIER2_SUPPORT",
