@@ -1,3 +1,6 @@
+⚠️ Starting with DSS version 10.0.0, this plugin is considered as "Legacy" and will be maintained only to fix critical issues. We recommend using the native feature Model Evaluation Store: https://doc.dataiku.com/dss/latest/python-api/model-evaluation-stores.html
+
+
 # Model drift monitoring
 
 Monitoring ML models in production is often a tedious task. You can apply a simply retraining strategy based on monitoring the model’s performance: if your AUC drops by a given percentage, retrain. Although accurate, this approach requires to obtain the ground truth for your preditctions, which is not always fast, and certainly not “real time”.
